@@ -1,0 +1,98 @@
+[
+  {
+    "section": "390.6",
+    "title": "Coercion prohibited",
+    "keywords": ["coercion", "390.6", "driver protection", "retaliation"],
+    "text": "A motor carrier, shipper, receiver, or transportation intermediary may not coerce a driver of a commercial motor vehicle to operate the vehicle in violation of certain provisions of the Federal Motor Carrier Safety Regulations or Hazardous Materials Regulations. Drivers may report coercion to FMCSA. Carriers found to have coerced a driver may be subject to civil penalties and may have operating authority revoked."
+  },
+  {
+    "section": "391.11",
+    "title": "General qualifications of drivers",
+    "keywords": ["driver qualification", "DQ file", "english language proficiency", "ELP", "391.11"],
+    "text": "A person shall not drive a commercial motor vehicle unless he/she is qualified. (b)(2) Can read and speak the English language sufficiently to converse with the general public, to understand highway traffic signs and signals in the English language, to respond to official inquiries, and to make entries on reports and records. See FMCSA Enforcement Guidance Memo MC-SEE-2025-0001 for the current ELP enforcement procedure (interview + Highway Traffic Sign Assessment)."
+  },
+  {
+    "section": "391.51",
+    "title": "General requirements for driver qualification files",
+    "keywords": ["DQ file", "driver qualification", "391.51", "hiring", "files"],
+    "text": "Each motor carrier shall maintain a driver qualification file for each driver it employs. The DQ file shall include: (1) the driver's application for employment, (2) inquiry to previous employers, (3) inquiry to State agencies for the driver record, (4) certification of road test, (5) annual driver's review, (6) annual list of violations, (7) medical examiner's certificate, (8) medical examiner's national registry verification, (9) driver's license check from state of issuance, (10) any required certifications and (11) other items required."
+  },
+  {
+    "section": "382.301",
+    "title": "Pre-employment testing (Drugs and Alcohol)",
+    "keywords": ["pre-employment", "drug test", "382.301", "382"],
+    "text": "Prior to the first time a driver performs safety-sensitive functions for an employer, the driver shall undergo testing for controlled substances. No employer shall allow a driver to perform safety-sensitive functions, unless the employer has received a controlled substances test result from the MRO indicating a verified negative test result for that driver."
+  },
+  {
+    "section": "382.701",
+    "title": "Drug and Alcohol Clearinghouse - Queries",
+    "keywords": ["clearinghouse", "382.701", "pre-employment query", "annual query"],
+    "text": "Employers shall conduct a full query of the Clearinghouse for each driver they intend to employ as part of pre-employment driver investigation procedures. Employers shall also conduct a limited query of the Clearinghouse at least once per year for every driver they currently employ. The driver's written consent is required for full queries."
+  },
+  {
+    "section": "383.23",
+    "title": "Commercial driver's license",
+    "keywords": ["CDL", "383.23", "commercial driver license", "operating without CDL"],
+    "text": "(a)(2) No person shall operate a commercial motor vehicle unless such person has taken and passed the knowledge and skills tests required for that class of vehicle. Operating a CMV without a valid CDL is a serious violation and OOS condition. Penalties may include disqualification, civil and criminal penalties."
+  },
+  {
+    "section": "383.51",
+    "title": "Disqualification of drivers",
+    "keywords": ["disqualification", "DUI", "major offenses", "383.51"],
+    "text": "A driver who is disqualified shall not drive a CMV. An employer shall not knowingly allow, permit, require, or authorize a driver who is disqualified to drive a CMV. Major offenses include: driving under the influence (alcohol/controlled substance), leaving the scene of an accident, using a CMV in commission of a felony, driving while CDL is revoked/suspended/cancelled, causing fatality through negligent operation."
+  },
+  {
+    "section": "392.7",
+    "title": "Equipment, inspection and use",
+    "keywords": ["pre-trip", "inspection", "392.7", "vehicle"],
+    "text": "No commercial motor vehicle shall be driven unless the driver is satisfied that all required parts and accessories are in good working order. The driver must inspect the service brakes, parking brake, steering, lighting, tires, horn, windshield wipers, rear-vision mirrors, coupling devices, wheels and rims, and emergency equipment. Findings shall be noted on the DVIR (Driver Vehicle Inspection Report) per 396.11."
+  },
+  {
+    "section": "395.1",
+    "title": "Scope of HOS rules and exceptions",
+    "keywords": ["HOS", "exceptions", "short-haul", "adverse driving conditions", "personal conveyance", "395.1"],
+    "text": "(e) Short-haul exception: A driver who operates within 150 air miles of normal work reporting location and returns within 14 hours of coming on duty may use this exception, with limitations. (o) Adverse driving conditions: a driver who encounters adverse driving conditions may drive up to 2 additional hours, but the 14-hour limit cannot be extended. (b) Sleeper berth: drivers may split sleeper berth time using 7/3 or 8/2 splits. Personal Conveyance (PC): a CMV may be used as PC when off-duty if specific conditions are met (Regulatory Guidance 2018). PC must be off-duty, no business purpose, and reasonable distance only. PC abuse to extend duty hours is a False Log violation under 395.8(e)."
+  },
+  {
+    "section": "395.3",
+    "title": "Maximum driving time for property-carrying vehicles",
+    "keywords": ["HOS", "11 hour", "14 hour", "70 hour", "duty limit", "drive limit", "395.3"],
+    "text": "(a)(1) A driver may drive only if 8 hours or less have passed since end of driver's last off-duty or sleeper berth period of at least 30 minutes. (a)(2) A driver may drive only during a period of 14 consecutive hours after coming on duty. (a)(3) A driver may drive a total of 11 hours during the 14-hour period. (b) No motor carrier shall permit a driver to drive after he/she has been on duty 60 hours in 7 consecutive days, or 70 hours in 8 consecutive days."
+  },
+  {
+    "section": "395.8",
+    "title": "Driver's record of duty status (RODS)",
+    "keywords": ["RODS", "logs", "false log", "395.8", "duty status"],
+    "text": "(a) Every motor carrier shall require every driver used to record his/her duty status. (e) Failure to complete records, falsification, or knowingly making a false report is prohibited. False logs are a serious violation and may be elevated to Acute/Critical in a Compliance Review. (e)(1) Personal Conveyance must not be used to extend a driver's hours of service or to conceal a HOS violation."
+  },
+  {
+    "section": "395.22",
+    "title": "Motor carrier responsibilities for ELDs",
+    "keywords": ["ELD", "395.22", "electronic logging"],
+    "text": "Each motor carrier shall ensure that its drivers use a registered ELD that is properly mounted, calibrated, and connected. Drivers shall not be required to operate a CMV if the ELD is not functioning correctly. Drivers must be trained on the operation of the ELD."
+  },
+  {
+    "section": "395.34",
+    "title": "ELD malfunctions and data diagnostic events",
+    "keywords": ["ELD malfunction", "395.34", "tampering"],
+    "text": "When an ELD malfunctions, drivers shall reconstruct RODS for the current 24-hour period and the previous 7 days on graph-grid paper logs. Carriers must repair or replace the malfunctioning ELD within 8 days. Tampering with an ELD or knowingly using a malfunctioning ELD to conceal violations is a serious violation."
+  },
+  {
+    "section": "396.13",
+    "title": "Driver inspection (pre-trip)",
+    "keywords": ["pre-trip", "396.13", "DVIR", "driver inspection"],
+    "text": "Before driving a CMV, the driver shall: (a) Be satisfied that the motor vehicle is in safe operating condition. (b) Review the last DVIR. (c) Sign the report, only if defects or deficiencies were noted by the driver who prepared the report, to acknowledge that the driver has reviewed it and that there is a certification that the required repairs have been performed."
+  },
+  {
+    "section": "396.17",
+    "title": "Periodic inspection",
+    "keywords": ["annual inspection", "periodic", "396.17", "396.21"],
+    "text": "Every CMV shall be inspected at least once every 12 months. The inspection shall include all parts and accessories listed in Appendix G to this subchapter. Documentation of the inspection (or a copy) shall be retained on the vehicle. Operating a CMV without proof of a current periodic inspection is a violation under 396.17(c)."
+  },
+  {
+    "section": "396.21",
+    "title": "Periodic inspection record-keeping requirements",
+    "keywords": ["396.21", "annual inspection record"],
+    "text": "The original or a copy of the periodic inspection report shall be retained by the motor carrier or other entity who is responsible for the inspection for a period of fourteen months from the date of the inspection report. A copy of the report shall be retained by the entity which performed the inspection."
+  }
+]

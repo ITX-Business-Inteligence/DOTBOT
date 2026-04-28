@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e3a8a">
+  <title>BOTDOT - Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="min-h-screen bg-slate-50 flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-blue-900 text-white shadow-md flex-shrink-0 sticky top-0 z-30">
+    <div class="flex items-center justify-between px-4 py-3 sm:px-6">
+      <div class="flex items-center gap-3">
+        <a href="/app.html" class="text-blue-200 hover:text-white text-sm">← Volver al chat</a>
+        <h1 class="text-lg font-bold">Analytics BOTDOT</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <select id="periodSelect" class="bg-blue-800 text-white text-sm rounded px-3 py-1.5 border border-blue-700">
+          <option value="7d">Ultimos 7 dias</option>
+          <option value="30d" selected>Ultimos 30 dias</option>
+          <option value="90d">Ultimos 90 dias</option>
+        </select>
+        <button id="logoutBtn" class="text-sm bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- KPIs -->
+    <section>
+      <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Resumen del periodo</h2>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="kpi-big bg-white"><div class="kpi-label">Conversaciones</div><div id="kpi-convs" class="kpi-value">—</div></div>
+        <div class="kpi-big bg-white"><div class="kpi-label">Preguntas</div><div id="kpi-msgs" class="kpi-value">—</div></div>
+        <div class="kpi-big bg-white"><div class="kpi-label">Usuarios activos</div><div id="kpi-users" class="kpi-value">—</div></div>
+        <div class="kpi-big bg-white"><div class="kpi-label">Decisiones loggeadas</div><div id="kpi-decisions" class="kpi-value">—</div></div>
+        <div class="kpi-big bg-red-50 border-red-200"><div class="kpi-label text-red-700">Solicitudes rechazadas</div><div id="kpi-refused" class="kpi-value text-red-700">—</div></div>
+        <div class="kpi-big bg-amber-50 border-amber-200"><div class="kpi-label text-amber-700">Override rate</div><div id="kpi-override" class="kpi-value text-amber-700">—</div></div>
+        <div class="kpi-big bg-white"><div class="kpi-label">Latencia promedio</div><div id="kpi-latency" class="kpi-value">—</div></div>
+        <div class="kpi-big bg-emerald-50 border-emerald-200"><div class="kpi-label text-emerald-700">Costo estimado</div><div id="kpi-cost" class="kpi-value text-emerald-700">—</div></div>
+      </div>
+    </section>
+
+    <!-- Time chart + role chart -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-2">
+        <h3 class="card-title">Preguntas por dia</h3>
+        <div class="h-64 sm:h-72"><canvas id="usageChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Por rol</h3>
+        <div class="h-64 sm:h-72"><canvas id="roleChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Top users + Top tools -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3 class="card-title">Top usuarios</h3>
+        <div id="topUsersTable" class="overflow-x-auto">Cargando...</div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Tools mas usadas</h3>
+        <div class="h-64"><canvas id="toolsChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Decisions + Hour heatmap -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="card">
+        <h3 class="card-title">Distribucion de decisiones</h3>
+        <div class="h-56"><canvas id="decisionsChart"></canvas></div>
+      </div>
+      <div class="card lg:col-span-2">
+        <h3 class="card-title">Patron horario (intensidad de uso)</h3>
+        <div id="heatmap" class="overflow-x-auto"></div>
+      </div>
+    </section>
+
+    <!-- Topics -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3 class="card-title">Palabras mas frecuentes</h3>
+        <div id="wordCloud" class="flex flex-wrap gap-2 p-2"></div>
+        <p class="text-xs text-slate-400 mt-2">MVP: tally simple. Sprint 2: clustering semantico via embeddings.</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Preguntas repetidas</h3>
+        <div id="repeatedPrompts" class="space-y-1.5 text-sm">Cargando...</div>
+      </div>
+    </section>
+
+    <!-- Refused requests (compliance value) -->
+    <section class="card">
+      <h3 class="card-title flex items-center gap-2">
+        <span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+        Solicitudes rechazadas por el bot
+      </h3>
+      <p class="text-xs text-slate-500 mb-3">Cada vez que el bot rechaza ayudar a una potencial violacion DOT y lo registra. Esto te protege en una CR de FMCSA — muestra que el sistema activamente desincentiva violaciones.</p>
+      <div id="refusedTable" class="overflow-x-auto">Cargando...</div>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-xs text-slate-400 p-4">
+    BOTDOT v0.1 - Datos de auditoria del propio asistente
+  </footer>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/analytics.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+node_modules/
+.env
+.env.local
+.env.production
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+data/*.csv
+data/*.xlsx
+reports/*.xlsx
+reports/*.pdf
+.vscode/
+.idea/
+*.swp
+.cache/
+dist/
+build/
+coverage/
+
+# Harness / IDE locales
+.claude/
+.cursor/
+
+# Permitir explicitamente la base de conocimiento CFR (NO ignorar)
+!data/cfrs/
+!data/cfrs/*.json
