@@ -6,6 +6,8 @@
 //   - Health endpoint
 //   - Graceful shutdown via IHostApplicationLifetime
 
+using BotDot.Web.Audit;
+using BotDot.Web.Auth;
 using BotDot.Web.Configuration;
 using BotDot.Web.Data;
 using Serilog;
@@ -41,14 +43,26 @@ try
     // (el pool real lo maneja MySqlConnector internamente).
     builder.Services.AddSingleton<IDbAccess, DbAccess>();
 
+    // Auth services
+    builder.Services.AddSingleton<IJwtService, JwtService>();
+    // Audit: Fase 2 usa stub. Fase 3 lo reemplaza con la implementacion real
+    // del hash chain.
+    builder.Services.AddSingleton<IAuditService, StubAuditService>();
+
+    // Rate limiting (login + change-password + chat-send)
+    builder.Services.AddAuthRateLimits();
+
     // HttpClient factory (lo usaremos en Fase 4 para Anthropic + Samsara + eCFR).
     builder.Services.AddHttpClient();
 
-    // Limita el body de requests JSON. /api/chat/send va aparte (multipart, 20MB).
+    // JSON: usar snake_case en wire format (matchea el contrato del Node:
+    // current_password, must_change_password, full_name, etc). Dentro de C#
+    // las propiedades siguen siendo PascalCase. La policy aplica tanto a
+    // serializacion (response) como deserializacion (request body).
     builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o =>
     {
-        // System.Text.Json default es bueno; solo activamos camelCase (matchea Node payloads).
-        o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
+        o.SerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
     });
 
     builder.Services.AddRouting();
@@ -90,6 +104,13 @@ try
         await next();
     });
 
+    // Auth middleware: lee cookie botdot_token, popula HttpContext.Items["User"].
+    // Endpoints individuales chequean auth con [RequireAuthFilter()].
+    app.UseMiddleware<AuthMiddleware>();
+
+    // Rate limiter middleware (las policies se aplican via RequireRateLimiting per-endpoint).
+    app.UseRateLimiter();
+
     // Logger por request — agrega request_id a cada log line.
     app.UseSerilogRequestLogging(o =>
     {
@@ -127,6 +148,9 @@ try
             ts = DateTime.UtcNow.ToString("O")
         });
     });
+
+    // ──── API endpoints ────
+    app.MapAuthEndpoints();
 
     // Static files (wwwroot/) — equivalente a express.static('public').
     app.UseDefaultFiles();
