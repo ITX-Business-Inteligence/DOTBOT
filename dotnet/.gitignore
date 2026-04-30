@@ -1,0 +1,14 @@
+# .NET build output
+bin/
+obj/
+
+# Local config con secretos
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Development.json
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
