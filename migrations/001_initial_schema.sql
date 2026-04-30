@@ -1,8 +1,11 @@
 -- ========================================================
--- BOTDOT - Schema MySQL
--- Ejecutar en MySQL/MariaDB despues de crear la BD vacia.
--- Compatible con MySQL 8 / MariaDB 10.5+
+-- BOTDOT - Schema inicial
+-- Migration 001 — primera version del schema completo.
 -- ========================================================
+-- IMPORTANTE: las migrations son INMUTABLES. Nunca edites un archivo
+-- ya aplicado en algun ambiente — el runner detecta el cambio de
+-- checksum y aborta. Para cambios al schema crea una nueva migration
+-- con un numero mayor.
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
@@ -86,7 +89,13 @@ CREATE TABLE IF NOT EXISTS messages (
   INDEX idx_conv_created (conversation_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Audit log inmutable de decisiones de compliance/dispatch
+-- Audit log tamper-evident de decisiones de compliance/dispatch.
+-- Defensas en capas:
+--   (1) Triggers BEFORE UPDATE / BEFORE DELETE — ver migration 002.
+--   (2) Usuario MySQL de la app SIN permiso UPDATE/DELETE sobre esta tabla
+--       (instrucciones en docs/DEPLOY.md).
+--   (3) Hash chain: SHA-256(prev_hash || canonical(fila)). Ver
+--       src/db/audit-chain.js y scripts/verify-audit-chain.js.
 CREATE TABLE IF NOT EXISTS audit_log (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -99,11 +108,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
   reasoning TEXT NULL,
   evidence_json JSON NULL,
   override_reason TEXT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  prev_hash CHAR(64) NOT NULL,
+  row_hash  CHAR(64) NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_user_date (user_id, created_at),
   INDEX idx_action (action_type, created_at),
-  INDEX idx_subject (subject_type, subject_id)
+  INDEX idx_subject (subject_type, subject_id),
+  INDEX idx_prev_hash (prev_hash),
+  UNIQUE KEY uniq_row_hash (row_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Snapshots de SMS / BASICs (historial de percentiles)
@@ -209,10 +222,3 @@ CREATE TABLE IF NOT EXISTS assignment_decisions (
   INDEX idx_user_date (user_id, created_at),
   INDEX idx_recommendation (bot_recommendation, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Seed: usuario admin inicial
--- Password: 'changeme' (cambiar inmediatamente despues de primer login)
--- Hash bcrypt cost 10: $2b$10$rXZ0qV9Y2K5L8m3N4o5P6e7Q8r9S0t1U2v3W4x5Y6z7A8b9C0d1E2
--- IMPORTANTE: regenerar con: node -e "console.log(require('bcrypt').hashSync('changeme', 10))"
-INSERT IGNORE INTO users (email, full_name, password_hash, role) VALUES
-  ('admin@intelogix.mx', 'Administrador', '$2b$10$REPLACE_WITH_REAL_HASH', 'admin');

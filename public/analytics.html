@@ -1,30 +1,38 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1e3a8a">
+  <meta name="theme-color" content="#020617">
   <title>BOTDOT - Analytics</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/img/apple-touch-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BOTDOT">
+  <script src="/js/pwa.js" defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body class="min-h-screen bg-slate-50 flex flex-col">
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
 
   <!-- Header -->
-  <header class="bg-blue-900 text-white shadow-md flex-shrink-0 sticky top-0 z-30">
+  <header class="bg-slate-900 text-slate-100 shadow-lg shadow-black/40 border-b border-slate-800 flex-shrink-0 sticky top-0 z-30">
     <div class="flex items-center justify-between px-4 py-3 sm:px-6">
       <div class="flex items-center gap-3">
-        <a href="/app.html" class="text-blue-200 hover:text-white text-sm">← Volver al chat</a>
+        <a href="/app.html" class="text-slate-400 hover:text-slate-100 text-sm">← Volver al chat</a>
         <h1 class="text-lg font-bold">Analytics BOTDOT</h1>
       </div>
       <div class="flex items-center gap-3">
-        <select id="periodSelect" class="bg-blue-800 text-white text-sm rounded px-3 py-1.5 border border-blue-700">
+        <select id="periodSelect" class="bg-slate-800 text-slate-100 text-sm rounded px-3 py-1.5 border border-slate-700">
           <option value="7d">Ultimos 7 dias</option>
           <option value="30d" selected>Ultimos 30 dias</option>
           <option value="90d">Ultimos 90 dias</option>
         </select>
-        <button id="logoutBtn" class="text-sm bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg">Salir</button>
+        <button id="logoutBtn" class="text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg">Salir</button>
       </div>
     </div>
   </header>
@@ -33,16 +41,16 @@
 
     <!-- KPIs -->
     <section>
-      <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Resumen del periodo</h2>
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Resumen del periodo</h2>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="kpi-big bg-white"><div class="kpi-label">Conversaciones</div><div id="kpi-convs" class="kpi-value">—</div></div>
-        <div class="kpi-big bg-white"><div class="kpi-label">Preguntas</div><div id="kpi-msgs" class="kpi-value">—</div></div>
-        <div class="kpi-big bg-white"><div class="kpi-label">Usuarios activos</div><div id="kpi-users" class="kpi-value">—</div></div>
-        <div class="kpi-big bg-white"><div class="kpi-label">Decisiones loggeadas</div><div id="kpi-decisions" class="kpi-value">—</div></div>
-        <div class="kpi-big bg-red-50 border-red-200"><div class="kpi-label text-red-700">Solicitudes rechazadas</div><div id="kpi-refused" class="kpi-value text-red-700">—</div></div>
-        <div class="kpi-big bg-amber-50 border-amber-200"><div class="kpi-label text-amber-700">Override rate</div><div id="kpi-override" class="kpi-value text-amber-700">—</div></div>
-        <div class="kpi-big bg-white"><div class="kpi-label">Latencia promedio</div><div id="kpi-latency" class="kpi-value">—</div></div>
-        <div class="kpi-big bg-emerald-50 border-emerald-200"><div class="kpi-label text-emerald-700">Costo estimado</div><div id="kpi-cost" class="kpi-value text-emerald-700">—</div></div>
+        <div class="kpi-big"><div class="kpi-label">Conversaciones</div><div id="kpi-convs" class="kpi-value">—</div></div>
+        <div class="kpi-big"><div class="kpi-label">Preguntas</div><div id="kpi-msgs" class="kpi-value">—</div></div>
+        <div class="kpi-big"><div class="kpi-label">Usuarios activos</div><div id="kpi-users" class="kpi-value">—</div></div>
+        <div class="kpi-big"><div class="kpi-label">Decisiones loggeadas</div><div id="kpi-decisions" class="kpi-value">—</div></div>
+        <div class="kpi-big kpi-danger"><div class="kpi-label">Solicitudes rechazadas</div><div id="kpi-refused" class="kpi-value">—</div></div>
+        <div class="kpi-big kpi-warning"><div class="kpi-label">Override rate</div><div id="kpi-override" class="kpi-value">—</div></div>
+        <div class="kpi-big"><div class="kpi-label">Latencia promedio</div><div id="kpi-latency" class="kpi-value">—</div></div>
+        <div class="kpi-big kpi-success"><div class="kpi-label">Costo estimado</div><div id="kpi-cost" class="kpi-value">—</div></div>
       </div>
     </section>
 
@@ -87,7 +95,7 @@
       <div class="card">
         <h3 class="card-title">Palabras mas frecuentes</h3>
         <div id="wordCloud" class="flex flex-wrap gap-2 p-2"></div>
-        <p class="text-xs text-slate-400 mt-2">MVP: tally simple. Sprint 2: clustering semantico via embeddings.</p>
+        <p class="text-xs text-slate-500 mt-2">MVP: tally simple. Sprint 2: clustering semantico via embeddings.</p>
       </div>
       <div class="card">
         <h3 class="card-title">Preguntas repetidas</h3>
@@ -101,13 +109,13 @@
         <span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
         Solicitudes rechazadas por el bot
       </h3>
-      <p class="text-xs text-slate-500 mb-3">Cada vez que el bot rechaza ayudar a una potencial violacion DOT y lo registra. Esto te protege en una CR de FMCSA — muestra que el sistema activamente desincentiva violaciones.</p>
+      <p class="text-xs text-slate-400 mb-3">Cada vez que el bot rechaza ayudar a una potencial violacion DOT y lo registra. Esto te protege en una CR de FMCSA — muestra que el sistema activamente desincentiva violaciones.</p>
       <div id="refusedTable" class="overflow-x-auto">Cargando...</div>
     </section>
 
   </main>
 
-  <footer class="text-center text-xs text-slate-400 p-4">
+  <footer class="text-center text-xs text-slate-500 p-4">
     BOTDOT v0.1 - Datos de auditoria del propio asistente
   </footer>
 

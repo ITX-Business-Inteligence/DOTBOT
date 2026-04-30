@@ -1,7 +1,31 @@
 // Tools del agente que consultan Samsara y aplican reglas HOS (49 CFR 395).
+//
+// Lee preferentemente del cache local (driver_hos_cache, poblado por
+// src/sync/hos.js cada 5 min). Si el cache no tiene la fila pedida, cae
+// al live API. Esto desacopla el agente de la disponibilidad de Samsara
+// y reduce latencia.
 
 const samsara = require('../../integrations/samsara-client');
 const db = require('../../db/pool');
+
+// Cuanto puede tardar una fila del cache en estar "fresca". Si el sync
+// corre cada 5 min, dejamos un colchon hasta 15 min antes de considerar
+// el cache stale e ir al live.
+const HOS_CACHE_STALE_MIN = 15;
+
+function cachedRowToSummary(row) {
+  return {
+    driverId: row.samsara_driver_id,
+    driverName: row.driver_name,
+    clockState: row.clock_state,
+    drive: { usedMin: row.drive_used_min, limitMin: 660, remainingMin: row.drive_remaining_min },
+    duty:  { usedMin: row.duty_used_min,  limitMin: 840, remainingMin: row.duty_remaining_min },
+    cycle: { usedMin: row.cycle_used_min, limitMin: 4200, remainingMin: row.cycle_remaining_min },
+    timestamp: row.fetched_at,
+    source: 'cache',
+    cache_age_sec: row.staleness_sec,
+  };
+}
 
 // ─── samsara_get_driver_hos ────────────────────────────────
 const getDriverHos = {
@@ -27,10 +51,20 @@ const getDriverHos = {
     );
     if (driverRow) samsaraId = driverRow.samsara_id;
 
+    // Intentar cache primero
+    const cached = await db.queryOne(
+      `SELECT *, TIMESTAMPDIFF(SECOND, fetched_at, NOW()) AS staleness_sec
+       FROM driver_hos_cache WHERE samsara_driver_id = ?`,
+      [samsaraId]
+    );
+    if (cached && cached.staleness_sec / 60 <= HOS_CACHE_STALE_MIN) {
+      return cachedRowToSummary(cached);
+    }
+
+    // Cache miss o stale → live
     const clock = await samsara.getDriverHosClock(samsaraId);
     if (!clock) return { error: `No se encontro HOS clock para ${driver_name_or_id}` };
-
-    return samsara.summarizeHosClock(clock);
+    return { ...samsara.summarizeHosClock(clock), source: 'live' };
   },
 };
 
@@ -76,32 +110,49 @@ const getDriversNearLimit = {
     },
   },
   handler: async ({ threshold_minutes = 90, limit_type = 'any' }) => {
-    const clocks = await samsara.getDriverHosClocks();
+    // Lee del cache. Si esta vacio, el primer sync todavia no corrio —
+    // devolvemos lista vacia con nota explicativa.
+    const rows = await db.query(
+      `SELECT *, TIMESTAMPDIFF(SECOND, fetched_at, NOW()) AS staleness_sec
+       FROM driver_hos_cache`
+    );
+    if (!rows.length) {
+      return {
+        count: 0,
+        drivers: [],
+        note: 'driver_hos_cache vacio. Esperar al primer sync o forzar via /api/admin/sync/run',
+      };
+    }
     const flagged = [];
-    for (const c of clocks) {
-      const s = samsara.summarizeHosClock(c);
-      if (!s) continue;
+    for (const r of rows) {
       const limits = {
-        drive: s.drive.remainingMin,
-        duty: s.duty.remainingMin,
-        cycle: s.cycle.remainingMin,
+        drive: r.drive_remaining_min,
+        duty: r.duty_remaining_min,
+        cycle: r.cycle_remaining_min,
       };
       const checks = limit_type === 'any' ? Object.entries(limits) : [[limit_type, limits[limit_type]]];
       for (const [key, remaining] of checks) {
-        if (remaining <= threshold_minutes && remaining > 0) {
+        if (remaining != null && remaining <= threshold_minutes && remaining > 0) {
           flagged.push({
-            driverName: s.driverName,
-            driverId: s.driverId,
+            driverName: r.driver_name,
+            driverId: r.samsara_driver_id,
             limit: key,
             remainingMin: remaining,
-            clockState: s.clockState,
+            clockState: r.clock_state,
+            fetched_at: r.fetched_at,
           });
           break;
         }
       }
     }
     flagged.sort((a, b) => a.remainingMin - b.remainingMin);
-    return { count: flagged.length, drivers: flagged.slice(0, 50) };
+    const oldest = Math.max(...rows.map(r => r.staleness_sec || 0));
+    return {
+      count: flagged.length,
+      drivers: flagged.slice(0, 50),
+      source: 'cache',
+      cache_oldest_age_sec: oldest,
+    };
   },
 };
 
@@ -147,6 +198,55 @@ const getVehicleStatus = {
   },
 };
 
+// ─── evaluateHosCompliance ────────────────────────────────
+// Logica pura HOS extraida para testabilidad. Recibe un snapshot HOS
+// (formato de samsara.summarizeHosClock) y los parametros de la load,
+// devuelve la misma estructura que checkAssignmentCompliance pero sin
+// tocar I/O. Tests en test/hos-rules.test.js.
+function evaluateHosCompliance(hos, { estimated_drive_minutes, load_window_minutes, load_reference }) {
+  const totalWindow = load_window_minutes || estimated_drive_minutes + 120;
+  const violations = [];
+
+  if (estimated_drive_minutes > hos.drive.remainingMin) {
+    violations.push({
+      cfr: '49 CFR 395.3(a)(3)',
+      rule: 'Driving limit (11 horas)',
+      gap_min: estimated_drive_minutes - hos.drive.remainingMin,
+      detail: `Driver tiene ${hos.drive.remainingMin}min drive disponible. Load requiere ${estimated_drive_minutes}min.`,
+    });
+  }
+  if (totalWindow > hos.duty.remainingMin) {
+    violations.push({
+      cfr: '49 CFR 395.3(a)(2)',
+      rule: '14-hour duty limit',
+      gap_min: totalWindow - hos.duty.remainingMin,
+      detail: `Driver tiene ${hos.duty.remainingMin}min duty disponible. Ventana total ${totalWindow}min.`,
+    });
+  }
+  if (totalWindow > hos.cycle.remainingMin) {
+    violations.push({
+      cfr: '49 CFR 395.3(b)',
+      rule: '70-hour cycle limit',
+      gap_min: totalWindow - hos.cycle.remainingMin,
+      detail: `Driver tiene ${hos.cycle.remainingMin}min de ciclo. Ventana ${totalWindow}min.`,
+    });
+  }
+
+  let decision = 'proceed';
+  if (violations.length === 0) decision = 'proceed';
+  else if (violations.every(v => v.gap_min < 60)) decision = 'conditional';
+  else decision = 'decline';
+
+  return {
+    decision,
+    violations,
+    hos_snapshot: hos,
+    load_reference: load_reference || null,
+    cfr_basis: violations.map(v => v.cfr),
+    disclaimer: 'Esto no constituye asesoria legal. La decision final es del dispatcher/supervisor.',
+  };
+}
+
 // ─── check_assignment_compliance ──────────────────────────
 const checkAssignmentCompliance = {
   definition: {
@@ -163,51 +263,10 @@ const checkAssignmentCompliance = {
       required: ['driver_name_or_id', 'estimated_drive_minutes'],
     },
   },
-  handler: async ({ driver_name_or_id, estimated_drive_minutes, load_window_minutes, load_reference }) => {
-    const hos = await getDriverHos.handler({ driver_name_or_id });
+  handler: async (params) => {
+    const hos = await getDriverHos.handler({ driver_name_or_id: params.driver_name_or_id });
     if (hos.error) return hos;
-
-    const totalWindow = load_window_minutes || estimated_drive_minutes + 120;
-    const violations = [];
-
-    if (estimated_drive_minutes > hos.drive.remainingMin) {
-      violations.push({
-        cfr: '49 CFR 395.3(a)(3)',
-        rule: 'Driving limit (11 horas)',
-        gap_min: estimated_drive_minutes - hos.drive.remainingMin,
-        detail: `Driver tiene ${hos.drive.remainingMin}min drive disponible. Load requiere ${estimated_drive_minutes}min.`,
-      });
-    }
-    if (totalWindow > hos.duty.remainingMin) {
-      violations.push({
-        cfr: '49 CFR 395.3(a)(2)',
-        rule: '14-hour duty limit',
-        gap_min: totalWindow - hos.duty.remainingMin,
-        detail: `Driver tiene ${hos.duty.remainingMin}min duty disponible. Ventana total ${totalWindow}min.`,
-      });
-    }
-    if (totalWindow > hos.cycle.remainingMin) {
-      violations.push({
-        cfr: '49 CFR 395.3(b)',
-        rule: '70-hour cycle limit',
-        gap_min: totalWindow - hos.cycle.remainingMin,
-        detail: `Driver tiene ${hos.cycle.remainingMin}min de ciclo. Ventana ${totalWindow}min.`,
-      });
-    }
-
-    let decision = 'proceed';
-    if (violations.length === 0) decision = 'proceed';
-    else if (violations.every(v => v.gap_min < 60)) decision = 'conditional';
-    else decision = 'decline';
-
-    return {
-      decision,
-      violations,
-      hos_snapshot: hos,
-      load_reference: load_reference || null,
-      cfr_basis: violations.map(v => v.cfr),
-      disclaimer: 'Esto no constituye asesoria legal. La decision final es del dispatcher/supervisor.',
-    };
+    return evaluateHosCompliance(hos, params);
   },
 };
 
@@ -217,4 +276,5 @@ module.exports = {
   getDriversNearLimit,
   getVehicleStatus,
   checkAssignmentCompliance,
+  evaluateHosCompliance,
 };

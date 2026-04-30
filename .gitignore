@@ -8,6 +8,10 @@ npm-debug.log*
 Thumbs.db
 data/*.csv
 data/*.xlsx
+# Carpetas de uploads y caches — contienen archivos subidos por usuarios
+# (Excel imports) y caches del eCFR fetcher.
+data/imports/
+data/cfrs/cfr-raw/
 reports/*.xlsx
 reports/*.pdf
 .vscode/
@@ -25,3 +29,6 @@ coverage/
 # Permitir explicitamente la base de conocimiento CFR (NO ignorar)
 !data/cfrs/
 !data/cfrs/*.json
+
+# Cloudflared tunnel binary (65MB, no commitear)
+cloudflared.exe

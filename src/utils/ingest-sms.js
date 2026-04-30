@@ -17,7 +17,10 @@ function parseCsv(filename) {
     console.warn(`No se encontro ${filename}, salteando.`);
     return [];
   }
-  const text = fs.readFileSync(filepath, 'utf8');
+  let text = fs.readFileSync(filepath, 'utf8');
+  // Strip UTF-8 BOM si esta presente — sino la primera key del header
+  // sale como "﻿BASIC" y todos los lookups r.BASIC fallan silencioso.
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (!lines.length) return [];
   const headers = parseCsvLine(lines[0]);

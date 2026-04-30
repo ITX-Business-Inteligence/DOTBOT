@@ -5,6 +5,7 @@ const samsara = require('./samsara');
 const cfr = require('./cfr');
 const sms = require('./sms');
 const audit = require('./audit');
+const escalate = require('./escalate');
 
 const TOOLS = {
   // Samsara
@@ -29,6 +30,10 @@ const TOOLS = {
   // Audit
   log_decision: audit.logDecision,
   log_refused_request: audit.logRefusedRequest,
+  log_off_topic: audit.logOffTopic,
+
+  // Escalation
+  escalate_to_compliance: escalate.escalateToCompliance,
 };
 
 const TOOL_DEFINITIONS = [
@@ -45,6 +50,8 @@ const TOOL_DEFINITIONS = [
   sms.queryDataQsCandidates.definition,
   audit.logDecision.definition,
   audit.logRefusedRequest.definition,
+  audit.logOffTopic.definition,
+  escalate.escalateToCompliance.definition,
 ];
 
 async function executeTool(name, input, context) {

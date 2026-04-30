@@ -1,9 +1,11 @@
 // Tools para busqueda y consulta de CFRs.
-// MVP usa un JSON local con secciones clave de 49 CFR Parts 380-399.
-// Para escalar: reemplazar con vector DB (pgvector / Pinecone) y embeddings.
+// JSON local con 49 CFR Parts 380-399 completos (~746 secciones).
+// Generado por scripts/fetch-cfr.js desde la API publica de eCFR.gov.
+// Para escalar a embeddings semanticos: pgvector / Pinecone.
 
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../utils/logger');
 
 const CFR_INDEX_PATH = path.join(__dirname, '../../../data/cfrs/cfr-index.json');
 
@@ -11,7 +13,7 @@ let cfrIndex = null;
 function loadIndex() {
   if (cfrIndex) return cfrIndex;
   if (!fs.existsSync(CFR_INDEX_PATH)) {
-    console.warn(`CFR index no encontrado en ${CFR_INDEX_PATH}. Devolvera sin matches.`);
+    logger.warn({ path: CFR_INDEX_PATH }, 'CFR index no encontrado, devolvera sin matches');
     cfrIndex = [];
     return cfrIndex;
   }
@@ -20,16 +22,43 @@ function loadIndex() {
 }
 
 function tokenize(s) {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(/\s+/).filter(Boolean);
+  return (s || '').toLowerCase().replace(/[^a-z0-9.]+/g, ' ').split(/\s+/).filter(Boolean);
 }
 
-function score(item, queryTokens) {
-  const text = (item.section + ' ' + item.title + ' ' + item.text + ' ' + (item.keywords || []).join(' ')).toLowerCase();
+// Score multi-criteria: title matches valen mucho mas que body matches.
+// Ademas prioriza match exacto de numero de seccion (ej. "395.3").
+function score(item, queryTokens, queryRaw) {
+  const titleLc = (item.title || '').toLowerCase();
+  const sectionLc = (item.section || '').toLowerCase();
+  const keywordsLc = (item.keywords || []).join(' ').toLowerCase();
+  const bodyLc = (item.text || '').toLowerCase();
+  const qLc = (queryRaw || '').toLowerCase();
+
   let s = 0;
+
+  // (1) Match exacto de numero de seccion en query — peso muy alto
+  // Ej: query "395.3" o "que dice 395.3" → seccion 395.3 al tope
+  if (sectionLc && qLc.includes(sectionLc)) s += 100;
+
+  // (2) Frase exacta de la query en titulo — peso muy alto
+  if (qLc && qLc.length >= 4 && titleLc.includes(qLc)) s += 50;
+
+  // (3) Tokens individuales — peso variable segun donde matchean
   for (const t of queryTokens) {
-    if (!t) continue;
-    if (text.includes(t)) s += t.length >= 4 ? 3 : 1;
+    if (!t || t.length < 2) continue;
+    const isMeaningful = t.length >= 4;
+    if (titleLc.includes(t))     s += isMeaningful ? 10 : 4;   // titulo
+    if (sectionLc === t)          s += 30;                       // numero exacto
+    if (keywordsLc.includes(t))   s += isMeaningful ? 5 : 2;    // keywords
+    if (bodyLc.includes(t))       s += isMeaningful ? 1 : 0;    // body (ruido)
   }
+
+  // (4) Si todos los tokens aparecen en titulo, bonus extra
+  if (queryTokens.length >= 2 &&
+      queryTokens.every(t => t.length >= 3 && titleLc.includes(t))) {
+    s += 20;
+  }
+
   return s;
 }
 
@@ -50,15 +79,17 @@ const searchCfr = {
     const index = loadIndex();
     if (!index.length) return { matches: [], note: 'CFR index vacio - cargar data/cfrs/cfr-index.json' };
     const tokens = tokenize(query);
-    const scored = index.map(item => ({ item, s: score(item, tokens) })).filter(x => x.s > 0);
+    const scored = index.map(item => ({ item, s: score(item, tokens, query) })).filter(x => x.s > 0);
     scored.sort((a, b) => b.s - a.s);
     return {
       query,
+      total_matches: scored.length,
       matches: scored.slice(0, limit).map(x => ({
         section: x.item.section,
         title: x.item.title,
         excerpt: x.item.text.slice(0, 800),
         keywords: x.item.keywords || [],
+        score: x.s,
       })),
     };
   },

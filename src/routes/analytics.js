@@ -4,16 +4,11 @@
 const express = require('express');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const db = require('../db/pool');
+const { PRICING, DEFAULT_MODEL, costFromUsage } = require('../utils/pricing');
 
 const router = express.Router();
 router.use(authMiddleware);
 router.use(requireRole('admin', 'manager', 'compliance'));
-
-// Pricing Claude (USD por 1M tokens) - mantener actualizado
-const PRICING = {
-  'claude-sonnet-4-6': { input: 3, output: 15, cache_read: 0.30, cache_write: 3.75 },
-  'claude-opus-4-7':   { input: 15, output: 75, cache_read: 1.50, cache_write: 18.75 },
-};
 
 function parsePeriod(p) {
   const map = { '7d': 7, '14d': 14, '30d': 30, '60d': 60, '90d': 90 };
@@ -232,19 +227,20 @@ router.get('/cost', async (req, res) => {
     [days]
   );
   const t = rows[0];
-  const p = PRICING['claude-sonnet-4-6'];
-  const cost =
-    (t.input_tokens / 1e6) * p.input +
-    (t.output_tokens / 1e6) * p.output +
-    (t.cache_read_tokens / 1e6) * p.cache_read +
-    (t.cache_create_tokens / 1e6) * p.cache_write;
+  const cost = costFromUsage({
+    input_tokens: t.input_tokens,
+    output_tokens: t.output_tokens,
+    cache_read_input_tokens: t.cache_read_tokens,
+    cache_creation_input_tokens: t.cache_create_tokens,
+  }, DEFAULT_MODEL);
 
   res.json({
     period_days: days,
     tokens: t,
     estimated_cost_usd: Math.round(cost * 100) / 100,
     estimated_monthly_usd: Math.round((cost / days) * 30 * 100) / 100,
-    pricing_basis: PRICING['claude-sonnet-4-6'],
+    pricing_basis: PRICING[DEFAULT_MODEL],
+    model: DEFAULT_MODEL,
   });
 });
 

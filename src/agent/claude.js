@@ -1,15 +1,24 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const config = require('../config');
+const logger = require('../utils/logger');
 const { buildSystemPrompt } = require('./system-prompt');
 const { TOOL_DEFINITIONS, executeTool } = require('./tools');
+const { buildContentBlocks } = require('../utils/attachments');
+const { MockClaude } = require('./mock-llm');
 const db = require('../db/pool');
 
-const client = new Anthropic({ apiKey: config.anthropic.apiKey });
+// Si BOTDOT_MOCK_LLM=true, usamos el mock que emula la API de Anthropic
+// localmente — util cuando todavia no hay ANTHROPIC_API_KEY real, para
+// validar UI flow, audit log, multipart, etc. Ver src/agent/mock-llm.js.
+const client = config.anthropic.mock
+  ? (logger.warn('[BOTDOT] MOCK LLM ACTIVO — las respuestas son simuladas, no llaman a Claude real.'),
+     new MockClaude())
+  : new Anthropic({ apiKey: config.anthropic.apiKey });
 
 const MAX_TOOL_ITERATIONS = 8;
 
 async function logMessage(conversationId, role, contentJson, usage = {}, latencyMs = null) {
-  await db.query(
+  const result = await db.query(
     `INSERT INTO messages (conversation_id, role, content_json, tokens_input, tokens_output, tokens_cache_read, tokens_cache_create, latency_ms)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -27,21 +36,51 @@ async function logMessage(conversationId, role, contentJson, usage = {}, latency
     `UPDATE conversations SET last_activity_at = CURRENT_TIMESTAMP, message_count = message_count + 1 WHERE id = ?`,
     [conversationId]
   );
+  return result.insertId;
 }
 
 /**
- * Ejecuta un turn del agente: recibe un mensaje del usuario, llama a Claude, ejecuta tools si las pide,
- * itera hasta que Claude termina de responder, y devuelve el texto final + metadata.
+ * Ejecuta un turn del agente.
+ *
+ * @param {Object} opts
+ * @param {Object} opts.user                 - { id, role, name, email }
+ * @param {number} opts.conversationId
+ * @param {string} opts.userMessage          - texto del usuario
+ * @param {Array}  [opts.attachments=[]]     - archivos de multer ({mimetype,buffer,size,sha256,originalname})
+ * @param {Array}  [opts.history=[]]         - mensajes previos en formato Anthropic
+ *
+ * Devuelve { text, iterations, toolCallsMade, history, userMessageId }.
+ * El caller usa userMessageId para linkear filas en message_attachments.
  */
-async function chat({ user, conversationId, userMessage, history = [] }) {
+async function chat({ user, conversationId, userMessage, attachments = [], history = [] }) {
   const systemPrompt = buildSystemPrompt(user);
+
+  // Anthropic content[] del turn actual: imagenes + texto.
+  // Si no hay imagenes, dejamos el content como string (back-compat con
+  // historial existente).
+  const hasImages = attachments && attachments.length > 0;
+  const userContentForApi = hasImages
+    ? buildContentBlocks(userMessage, attachments)
+    : userMessage;
 
   const messages = [
     ...history,
-    { role: 'user', content: userMessage },
+    { role: 'user', content: userContentForApi },
   ];
 
-  await logMessage(conversationId, 'user', { text: userMessage });
+  // En DB guardamos solo metadata liviana de los adjuntos, no los bytes.
+  // Los bytes viven en message_attachments.content_blob. El sha256 sirve
+  // de puente.
+  const userContentForLog = {
+    text: userMessage,
+    attachments: attachments.map(a => ({
+      sha256: a.sha256,
+      mime_type: a.mimetype,
+      byte_size: a.size,
+      original_name: a.originalname,
+    })),
+  };
+  const userMessageId = await logMessage(conversationId, 'user', userContentForLog);
 
   let iterations = 0;
   let finalText = '';
@@ -68,7 +107,6 @@ async function chat({ user, conversationId, userMessage, history = [] }) {
     const latency = Date.now() - t0;
     await logMessage(conversationId, 'assistant', response.content, response.usage, latency);
 
-    // Si terminó sin tool use, recolectamos texto final
     if (response.stop_reason === 'end_turn' || response.stop_reason === 'stop_sequence') {
       finalText = response.content
         .filter(b => b.type === 'text')
@@ -78,7 +116,6 @@ async function chat({ user, conversationId, userMessage, history = [] }) {
       break;
     }
 
-    // tool_use: ejecutamos cada tool y armamos los tool_results
     if (response.stop_reason === 'tool_use') {
       messages.push({ role: 'assistant', content: response.content });
 
@@ -110,7 +147,6 @@ async function chat({ user, conversationId, userMessage, history = [] }) {
       continue;
     }
 
-    // Otros stop_reason (max_tokens, etc.) cortamos aqui
     finalText = response.content
       .filter(b => b.type === 'text')
       .map(b => b.text)
@@ -128,12 +164,10 @@ async function chat({ user, conversationId, userMessage, history = [] }) {
     iterations,
     toolCallsMade,
     history: messages,
+    userMessageId,
   };
 }
 
-/**
- * Crea o continua una conversacion. Si conversationId es null crea una nueva.
- */
 async function getOrCreateConversation(userId, conversationId, title = null) {
   if (conversationId) {
     const conv = await db.queryOne(
@@ -150,7 +184,10 @@ async function getOrCreateConversation(userId, conversationId, title = null) {
 }
 
 /**
- * Carga el historial reciente (mensajes user/assistant solamente, en formato Anthropic) para una conversacion.
+ * Carga el historial reciente. Las imagenes que el usuario subio en turns
+ * pasados NO se reenvian a Claude (costo prohibitivo y rara vez utiles
+ * para el seguimiento). Solo se reenvia el texto. Si el usuario quiere
+ * referirse a la imagen, la sube de nuevo.
  */
 async function loadHistory(conversationId, limit = 30) {
   const rows = await db.query(
@@ -163,9 +200,19 @@ async function loadHistory(conversationId, limit = 30) {
   return rows.map(r => {
     const content = typeof r.content_json === 'string' ? JSON.parse(r.content_json) : r.content_json;
     if (r.role === 'user') {
-      // Si es objeto {text}, lo convertimos a string. Si es array (tool_results), lo dejamos.
+      // tool_result blocks (cuando el tool loop empuja al user role) son arrays
       if (Array.isArray(content)) return { role: 'user', content };
-      return { role: 'user', content: content.text || JSON.stringify(content) };
+      // Mensaje de usuario con texto + (opcionalmente) attachments. Solo
+      // mandamos el texto. Si habia adjuntos, agregamos una linea
+      // explicativa para que el modelo sepa que existieron.
+      let text = content.text || JSON.stringify(content);
+      if (content.attachments && content.attachments.length) {
+        const desc = content.attachments
+          .map(a => `${a.mime_type} ${Math.round((a.byte_size || 0) / 1024)}KB sha=${(a.sha256 || '').slice(0, 8)}`)
+          .join(', ');
+        text += `\n\n[En este turn el usuario adjunto ${content.attachments.length} imagen(es): ${desc}. No las tienes a la vista ahora; si necesitas verlas pide que las reenvie.]`;
+      }
+      return { role: 'user', content: text };
     }
     return { role: 'assistant', content };
   });

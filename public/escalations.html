@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#020617">
+  <title>BOTDOT - Escalaciones</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/img/apple-touch-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BOTDOT">
+  <script src="/js/pwa.js" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+
+  <header class="bg-slate-900 text-slate-100 shadow-lg shadow-black/40 border-b border-slate-800 flex-shrink-0 sticky top-0 z-30">
+    <div class="flex items-center justify-between px-4 py-3 sm:px-6">
+      <div class="flex items-center gap-3">
+        <a href="/app.html" class="text-slate-400 hover:text-slate-100 text-sm">← Volver al chat</a>
+        <h1 class="text-lg font-bold">Escalaciones a Compliance</h1>
+      </div>
+      <button id="logoutBtn" class="text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg">Salir</button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-4">
+
+    <!-- Filtros -->
+    <div class="flex flex-wrap gap-2 items-center">
+      <span class="text-sm text-slate-400">Status:</span>
+      <button class="status-filter active" data-status="">Todas</button>
+      <button class="status-filter" data-status="pending">Pending</button>
+      <button class="status-filter" data-status="assigned">Assigned</button>
+      <button class="status-filter" data-status="in_progress">In progress</button>
+      <button class="status-filter" data-status="resolved">Resolved</button>
+
+      <span class="text-sm text-slate-400 ml-4">Urgencia:</span>
+      <button class="urgency-filter active" data-urgency="">Todas</button>
+      <button class="urgency-filter" data-urgency="critical">Critical</button>
+      <button class="urgency-filter" data-urgency="high">High</button>
+      <button class="urgency-filter" data-urgency="medium">Medium</button>
+      <button class="urgency-filter" data-urgency="low">Low</button>
+    </div>
+
+    <div class="card overflow-x-auto">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Urgencia</th>
+            <th>Estado</th>
+            <th>Usuario</th>
+            <th>Categoria</th>
+            <th>Resumen</th>
+            <th>Asignado a</th>
+            <th>Creada</th>
+            <th class="text-right">Accion</th>
+          </tr>
+        </thead>
+        <tbody id="escTableBody">
+          <tr><td colspan="9" class="text-center text-slate-500 py-6">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Modal: detalles + acciones -->
+  <div id="escModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="escModalTitle" class="font-bold text-slate-100">Escalacion #—</h3>
+        <button class="modal-close text-slate-400 hover:text-slate-100">✕</button>
+      </div>
+      <div id="escModalBody" class="p-4 space-y-3 overflow-y-auto"></div>
+      <div class="px-4 py-3 border-t border-slate-800 flex justify-end gap-2">
+        <button class="modal-close px-3 py-2 text-sm rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/escalations.js"></script>
+</body>
+</html>

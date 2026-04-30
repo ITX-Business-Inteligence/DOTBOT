@@ -1,5 +1,13 @@
 // Carga y render del dashboard de analytics meta de BOTDOT.
 
+// Chart.js defaults para tema oscuro: labels y grids claros sobre cards
+// slate-900. Si no se setea esto, los ticks salen en negro casi invisible.
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.color = '#cbd5e1';                 // slate-300
+  Chart.defaults.borderColor = 'rgba(148,163,184,0.15)'; // slate-400/15
+  Chart.defaults.plugins.legend.labels.color = '#e2e8f0'; // slate-200
+}
+
 (async function init() {
   // Verificar sesion + rol
   let user;
@@ -12,7 +20,7 @@
   }
   if (!['admin', 'manager', 'compliance'].includes(user.role)) {
     document.querySelector('main').innerHTML =
-      '<div class="card text-center text-slate-600">Esta vista esta restringida a roles admin, manager o compliance.</div>';
+      '<div class="card text-center text-slate-300">Esta vista esta restringida a roles admin, manager o compliance.</div>';
     return;
   }
 
@@ -63,8 +71,8 @@ async function loadUsage(period) {
     data: {
       labels,
       datasets: [
-        { label: 'Preguntas', data: msgs, borderColor: '#1e3a8a', backgroundColor: '#1e3a8a22', tension: 0.3, fill: true },
-        { label: 'Conversaciones', data: convs, borderColor: '#0891b2', backgroundColor: 'transparent', tension: 0.3 },
+        { label: 'Preguntas', data: msgs, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.18)', tension: 0.3, fill: true },
+        { label: 'Conversaciones', data: convs, borderColor: '#22d3ee', backgroundColor: 'transparent', tension: 0.3 },
       ],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
@@ -83,7 +91,7 @@ async function loadByRole(period) {
       labels,
       datasets: [{
         data,
-        backgroundColor: ['#1e3a8a', '#0891b2', '#16a34a', '#ca8a04', '#dc2626'],
+        backgroundColor: ['#60a5fa', '#22d3ee', '#34d399', '#facc15', '#f87171'],
       }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
@@ -117,7 +125,7 @@ async function loadTopTools(period) {
   if (toolsChart) toolsChart.destroy();
   toolsChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'Llamadas', data, backgroundColor: '#1e3a8a' }] },
+    data: { labels, datasets: [{ label: 'Llamadas', data, backgroundColor: '#60a5fa' }] },
     options: {
       indexAxis: 'y',
       responsive: true,
@@ -130,7 +138,7 @@ async function loadTopTools(period) {
 
 async function loadDecisions(period) {
   const d = await window.BOTDOT.api(`/api/analytics/decisions?period=${period}`);
-  const colors = { proceed: '#16a34a', conditional: '#ca8a04', decline: '#dc2626', override: '#7c3aed', informational: '#0284c7' };
+  const colors = { proceed: '#34d399', conditional: '#facc15', decline: '#f87171', override: '#a78bfa', informational: '#38bdf8' };
   const labels = d.decisions.map(x => x.decision);
   const data = d.decisions.map(x => x.count);
   const bg = labels.map(l => colors[l] || '#64748b');
@@ -162,7 +170,7 @@ async function loadHeatmap(period) {
     for (let h = 0; h < 24; h++) {
       const v = matrix[d2][h];
       const intensity = max ? v / max : 0;
-      const bg = v ? `rgba(30,58,138,${0.15 + intensity * 0.85})` : '#f1f5f9';
+      const bg = v ? `rgba(96,165,250,${0.15 + intensity * 0.85})` : '#1e293b';
       html += `<div class="hm-cell" style="background:${bg}" title="${dows[d2]} ${h}:00 - ${v} preguntas"></div>`;
     }
   }
@@ -171,7 +179,7 @@ async function loadHeatmap(period) {
   for (let h = 0; h < 24; h++) {
     const v = matrix[0][h];
     const intensity = max ? v / max : 0;
-    const bg = v ? `rgba(30,58,138,${0.15 + intensity * 0.85})` : '#f1f5f9';
+    const bg = v ? `rgba(96,165,250,${0.15 + intensity * 0.85})` : '#1e293b';
     html += `<div class="hm-cell" style="background:${bg}" title="${dows[0]} ${h}:00 - ${v} preguntas"></div>`;
   }
   html += '</div>';
@@ -196,9 +204,9 @@ async function loadTopics(period) {
     repeated.innerHTML = '<div class="text-sm text-slate-400">Sin preguntas repetidas en el periodo</div>';
   } else {
     repeated.innerHTML = d.repeated_prompts.map(p => `
-      <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-        <span class="text-xs font-bold bg-blue-900 text-white px-2 py-0.5 rounded">×${p.count}</span>
-        <span class="flex-1 truncate" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
+      <div class="flex items-center gap-2 p-2 bg-slate-800 border border-slate-700 rounded-lg">
+        <span class="text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded">×${p.count}</span>
+        <span class="flex-1 truncate text-slate-200" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</span>
       </div>`).join('');
   }
 }

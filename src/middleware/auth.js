@@ -14,9 +14,11 @@ function verifyToken(token) {
 }
 
 function authMiddleware(req, res, next) {
-  const token =
-    req.cookies?.botdot_token ||
-    (req.headers.authorization?.startsWith('Bearer ') && req.headers.authorization.slice(7));
+  // Solo aceptamos token via cookie httpOnly. Removimos Bearer header
+  // intencionalmente: la app es 100% misma-origen y un cookie httpOnly
+  // es mas seguro (no accesible a JS, immune a XSS-token-theft). Aceptar
+  // Bearer ampliaba surface area sin uso real.
+  const token = req.cookies?.botdot_token;
   if (!token) return res.status(401).json({ error: 'No autenticado' });
 
   try {
@@ -27,6 +29,11 @@ function authMiddleware(req, res, next) {
       role: payload.role,
       name: payload.name,
     };
+    // Enriquecer el logger del request: a partir de aqui, cada req.log.*
+    // dentro del request lleva user_id + role (defense in depth de audit).
+    if (req.log && typeof req.log.child === 'function') {
+      req.log = req.log.child({ user_id: req.user.id, role: req.user.role });
+    }
     next();
   } catch (e) {
     return res.status(401).json({ error: 'Token invalido o expirado' });

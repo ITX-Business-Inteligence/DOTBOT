@@ -30,17 +30,21 @@ BOTDOT/
 ├── server.js                  # Entry Express
 ├── package.json
 ├── .env.example               # Template de variables
+├── migrations/                # SQL migrations versionadas (001_, 002_, ...)
 ├── src/
 │   ├── config/                # Carga de .env
-│   ├── db/                    # Schema, pool, init
+│   ├── db/                    # pool.js, migrate.js, init.js, audit-chain.js
 │   ├── middleware/            # auth.js (JWT)
-│   ├── routes/                # auth, chat, dashboard
+│   ├── routes/                # auth, chat, dashboard, analytics, audit
 │   ├── agent/
 │   │   ├── claude.js          # Tool use loop
 │   │   ├── system-prompt.js   # System prompt + reglas duras
 │   │   └── tools/             # samsara, cfr, sms, audit
 │   ├── integrations/          # samsara-client.js
 │   └── utils/
+│       ├── budget.js          # Cap diario de Claude (user / org)
+│       ├── inflight.js        # Concurrency gate por usuario
+│       ├── pricing.js         # Pricing y queries de costo
 │       └── ingest-sms.js      # Carga CSVs del SMS export a DB
 ├── public/                    # Frontend
 │   ├── index.html             # Login
@@ -55,7 +59,7 @@ BOTDOT/
 │   ├── DEPLOY.md
 │   └── HANDOFF.md
 ├── reports/                   # Reportes ejecutivos generados
-└── scripts/                   # Scripts PowerShell de generacion de reportes
+└── scripts/                   # Scripts: build_report, verify-audit-chain, ...
 ```
 
 ## Setup local (XAMPP)
@@ -69,22 +73,41 @@ npm install
 cp .env.example .env
 # Editar .env con tus secretos reales
 
-# 4. Crear DB (usar el MySQL de XAMPP)
-# En phpMyAdmin: CREATE DATABASE botdot CHARACTER SET utf8mb4;
-# O via CLI:
-mysql -u root -p -e "CREATE DATABASE botdot CHARACTER SET utf8mb4;"
-
-# 5. Inicializar schema y usuario admin
+# 4. Inicializar (init.js crea la DB si no existe, corre migrations
+#    pendientes y asegura el usuario admin). Idempotente.
 node src/db/init.js
 
-# 6. (Opcional) Cargar datos del SMS si ya tienes CSVs en /data
+# Comandos relacionados:
+#   npm run migrate          # solo aplicar migrations pendientes
+#   npm run migrate:status   # ver aplicadas vs pendientes
+#   npm run verify-audit     # chequear integridad del audit_log
+
+# 5. (Opcional) Cargar datos del SMS si ya tienes CSVs en /data
 npm run ingest-sms
 
-# 7. Levantar servidor
+# 6. Levantar servidor
 npm run dev
 ```
 
 Abrir: http://localhost:3000 (login con `admin@intelogix.mx` / `changeme123`).
+
+## Tests
+
+Suite de tests puros con `node:test` (sin dependencias adicionales). No
+tocan DB ni la API de Anthropic — solo logica.
+
+```bash
+npm test
+```
+
+Cobertura actual:
+- **HOS rules** ([test/hos-rules.test.js](test/hos-rules.test.js)) — `evaluateHosCompliance` contra 49 CFR 395.3: PROCEED / CONDITIONAL / DECLINE en escenarios de drive/duty/cycle, fronteras de gap, multiples violaciones simultaneas.
+- **System prompt** ([test/system-prompt.test.js](test/system-prompt.test.js)) — verifica que las 9 reglas duras estan presentes, que la frase exacta de redirect off-topic existe, que se listan los Parts criticos del 49 CFR. Si alguien edita el prompt y borra una regla, CI lo detecta.
+- **Audit chain** ([test/audit-chain.test.js](test/audit-chain.test.js)) — `canonicalize` determinista, `computeRowHash` reproducible, sensibilidad a cambios en cualquier campo (cualquier mutacion historica rompe el hash).
+- **Pricing** ([test/pricing.test.js](test/pricing.test.js)) — calculos de costo en ambos formatos (API Anthropic y DB), todos los modelos, edge cases.
+- **Tools registry** ([test/tools-registry.test.js](test/tools-registry.test.js)) — todos los tools tienen schema valido, names unicos, y los que el system prompt nombra (`log_off_topic`, `log_decision`, etc) existen.
+
+Tests con DB real (insert + verify chain + tamper detection) y tests behavioral contra Claude API quedan como suite de integracion separada — pendiente.
 
 ## Como agregar usuarios
 
