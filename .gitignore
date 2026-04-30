@@ -18,9 +18,12 @@ reports/*.pdf
 .idea/
 *.swp
 .cache/
-dist/
 build/
 coverage/
+# dist/docs/ contiene PDFs build artifact. Se generan con
+# `node scripts/build-pdfs.js`. Si los queres en el repo (ej. para
+# release), commitealos manualmente con `git add -f dist/docs/*.pdf`.
+dist/
 
 # Harness / IDE locales
 .claude/
