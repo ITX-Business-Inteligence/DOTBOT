@@ -68,9 +68,12 @@ public class DbAccess : IDbAccess
 
     public async Task<long> ExecuteInsertAsync(string sql, object? param = null)
     {
+        // CRITICO: con auto-open de Dapper la conexion se cierra entre el
+        // INSERT y el SELECT LAST_INSERT_ID(), retornando 0. OpenAsync explicito
+        // mantiene la misma conexion fisica para ambas queries.
         await using var conn = GetConnection();
+        await conn.OpenAsync();
         await conn.ExecuteAsync(sql, param);
-        // mysql2 driver Node devuelve insertId; Dapper no, asi que pedimos LAST_INSERT_ID
         return await conn.ExecuteScalarAsync<long>("SELECT LAST_INSERT_ID()");
     }
 

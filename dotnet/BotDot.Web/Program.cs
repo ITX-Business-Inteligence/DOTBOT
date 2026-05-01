@@ -6,10 +6,13 @@
 //   - Health endpoint
 //   - Graceful shutdown via IHostApplicationLifetime
 
+using BotDot.Web.Agent;
+using BotDot.Web.Agent.Tools;
 using BotDot.Web.Audit;
 using BotDot.Web.Auth;
 using BotDot.Web.Configuration;
 using BotDot.Web.Data;
+using BotDot.Web.Email;
 using Serilog;
 
 // Bootstrap Serilog antes del builder para capturar errores tempranos.
@@ -55,8 +58,41 @@ try
     // Rate limiting (login + change-password + chat-send)
     builder.Services.AddAuthRateLimits();
 
-    // HttpClient factory (lo usaremos en Fase 4 para Anthropic + Samsara + eCFR).
+    // HttpClient factory para clientes externos (Anthropic real, eCFR, etc).
     builder.Services.AddHttpClient();
+
+    // Agent — Fase 4
+    var anthropicMock = builder.Configuration.GetValue<bool>("BotDot:Anthropic:Mock");
+    var samsaraMock = builder.Configuration.GetValue<bool>("BotDot:Samsara:Mock");
+    var emailMock = builder.Configuration.GetValue<bool>("BotDot:Email:Mock");
+    if (anthropicMock)
+    {
+        Log.Warning("[BOTDOT] MOCK LLM ACTIVO — las respuestas son simuladas, no llaman a Claude real.");
+        builder.Services.AddSingleton<IAnthropicClient, MockClaudeClient>();
+    }
+    else
+    {
+        builder.Services.AddSingleton<IAnthropicClient, AnthropicHttpClient>();
+    }
+    if (samsaraMock)
+    {
+        Log.Warning("[BOTDOT] MOCK SAMSARA ACTIVO — drivers/vehicles/hos vienen de fixtures.");
+        builder.Services.AddSingleton<ISamsaraClient, SamsaraMockClient>();
+    }
+    else
+    {
+        builder.Services.AddSingleton<ISamsaraClient, SamsaraHttpClient>();
+    }
+    if (emailMock)
+    {
+        builder.Services.AddSingleton<IEmailService, MockEmailService>();
+    }
+    else
+    {
+        builder.Services.AddSingleton<IEmailService, MailKitEmailService>();
+    }
+    ToolRegistry.RegisterTools(builder.Services);
+    builder.Services.AddSingleton<ChatService>();
 
     // JSON: usar snake_case en wire format (matchea el contrato del Node:
     // current_password, must_change_password, full_name, etc). Dentro de C#
@@ -155,6 +191,7 @@ try
     // ──── API endpoints ────
     app.MapAuthEndpoints();
     app.MapAuditEndpoints();
+    app.MapChatEndpoints();
 
     // Static files (wwwroot/) — equivalente a express.static('public').
     app.UseDefaultFiles();
