@@ -1,6 +1,30 @@
 // Flujo de login. Externalizado de index.html para que la CSP pueda
 // quitar 'unsafe-inline' de scriptSrc.
 
+// ─── Boot intro animation lifecycle ────────────────────────────
+// Se muestra una vez por session (sessionStorage). Skip on click. URL param
+// ?nointro lo desactiva. La animacion CSS auto-fade dura ~2.5s.
+(function bootIntro() {
+  const intro = document.getElementById('bootIntro');
+  if (!intro) return;
+  const skip =
+    sessionStorage.getItem('bootIntroShown') === '1' ||
+    location.search.includes('nointro');
+  if (skip) {
+    intro.style.display = 'none';
+    return;
+  }
+  sessionStorage.setItem('bootIntroShown', '1');
+  // Click salta directo
+  intro.addEventListener('click', () => {
+    intro.style.transition = 'opacity 0.25s ease';
+    intro.style.opacity = '0';
+    setTimeout(() => { intro.style.display = 'none'; }, 250);
+  }, { once: true });
+  // Cleanup despues del fade auto (animation ends ~2.9s)
+  setTimeout(() => { intro.style.display = 'none'; }, 3000);
+})();
+
 (async function checkExistingSession() {
   // Si ya hay sesion, redirigir a app.
   try {
