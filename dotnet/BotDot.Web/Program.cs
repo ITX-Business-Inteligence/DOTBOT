@@ -125,6 +125,23 @@ try
 
     builder.Services.AddRouting();
 
+    // Blazor Server — Razor Components con interactividad SignalR.
+    // Reemplaza el frontend HTML+JS estatico (que aun queda en wwwroot/ para
+    // las paginas no migradas; conforme se migran, se borran las HTML).
+    builder.Services.AddRazorComponents()
+        .AddInteractiveServerComponents();
+
+    // Antiforgery — requerido por Blazor para forms con InteractiveServer.
+    builder.Services.AddAntiforgery();
+
+    // HttpClient para que los componentes Blazor llamen al propio /api/.
+    // Sirve para reusar los endpoints que ya estan probados (/api/auth/login, etc).
+    builder.Services.AddHttpClient("self", (sp, c) =>
+    {
+        // BaseAddress se setea por componente desde NavigationManager.BaseUri
+        // en runtime — aqui solo configuramos cookies handler.
+    });
+
     var app = builder.Build();
 
     var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -224,16 +241,24 @@ try
     app.MapNotificationsEndpoints();
     app.MapAnalyticsEndpoints();
 
-    // Static files (wwwroot/) — equivalente a express.static('public').
-    app.UseDefaultFiles();
+    // Static files (wwwroot/) — sirve CSS, JS, imagenes, sw.js, manifest, y
+    // las HTML estaticas todavia no migradas a Blazor (app.html, drivers.html,
+    // etc). NO usamos UseDefaultFiles porque "/" lo toma Blazor (Login.razor).
     app.UseStaticFiles();
+
+    // Antiforgery — requerido por Blazor con InteractiveServer. Va despues de
+    // auth y antes del Map de razor components.
+    app.UseAntiforgery();
 
     // 404 JSON para /api/* desconocidos (antes del SPA fallback).
     app.Map("/api/{**rest}", (HttpContext c) =>
         Results.Json(new { error = $"Endpoint no encontrado: {c.Request.Method} {c.Request.Path}" }, statusCode: 404));
 
-    // SPA fallback — cualquier GET no matcheado devuelve index.html.
-    app.MapFallbackToFile("index.html");
+    // Blazor — Razor Components con SignalR interactive server.
+    // Maneja "/" (Login) y las paginas migradas. Las paginas no migradas
+    // todavia se sirven via UseStaticFiles arriba.
+    app.MapRazorComponents<BotDot.Web.Components.App>()
+        .AddInteractiveServerRenderMode();
 
     // Warning si estamos en prod con mocks activos.
     if (opts.IsProduction && (opts.Anthropic.Mock || opts.Samsara.Mock))

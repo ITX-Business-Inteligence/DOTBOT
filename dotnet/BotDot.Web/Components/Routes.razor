@@ -1,0 +1,20 @@
+@* Router de Blazor — escanea los assemblies por componentes con @page directives.
+   Cada pagina declara su ruta con @page "/x" y aparece automaticamente. *@
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>404 — Pagina no encontrada</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <main class="flex-1 flex items-center justify-center p-8">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-slate-100 mb-2">404</h1>
+                    <p class="text-slate-400">Pagina no encontrada.</p>
+                    <a href="/" class="text-blue-400 hover:text-blue-300 mt-4 inline-block">Ir al inicio</a>
+                </div>
+            </main>
+        </LayoutView>
+    </NotFound>
+</Router>

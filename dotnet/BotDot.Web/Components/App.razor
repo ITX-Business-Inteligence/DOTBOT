@@ -1,0 +1,29 @@
+@* Root component — equivalente al index.html shell del Node.
+   Dark mode siempre activo (memoria: feedback_dark_ui — toda UI HTML/Tailwind
+   del proyecto va dark por defecto, sin toggle claro).
+   Tailwind CDN + styles.css del wwwroot — mismo CSS que el Node, sin reescribir. *@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <meta name="theme-color" content="#020617" />
+    <base href="/" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BOTDOT" />
+    <title>BOTDOT</title>
+    <script src="/js/pwa.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <HeadOutlet />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <Routes />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

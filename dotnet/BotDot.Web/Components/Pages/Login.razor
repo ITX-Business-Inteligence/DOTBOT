@@ -1,0 +1,141 @@
+@page "/"
+@page "/login"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+@inject IHttpClientFactory HttpFactory
+
+@* Equivalente a public/index.html + public/js/login.js del Node.
+   Mismo CSS Tailwind, misma intro animation (definida en wwwroot/css/styles.css).
+   Logica: chequea sesion existente al onload y redirige; en submit hace POST
+   /api/auth/login y redirige segun must_change_password. *@
+
+<PageTitle>BOTDOT - Acceso</PageTitle>
+
+@* Boot intro — el div es identico al del HTML estatico. La animacion CSS
+   y el lifecycle (skip on click, una vez por session) los maneja
+   public/js/login.js (servido como estatico via UseStaticFiles + reference
+   en App.razor head). *@
+<div id="bootIntro" class="intro-overlay" role="presentation" aria-hidden="true">
+    <div class="intro-content">
+        <div class="intro-logo-wrap">
+            <img src="/img/dotbot-header.png" alt="" />
+        </div>
+        <h1 class="intro-title">BOTDOT</h1>
+        <p class="intro-tagline">Compliance DOT · FMCSA</p>
+        <div class="intro-checks">
+            <div class="intro-check-line">
+                <span class="intro-check-label">&gt; AUDIT CHAIN</span>
+                <span class="intro-check-status">INTACT ✓</span>
+            </div>
+            <div class="intro-check-line">
+                <span class="intro-check-label">&gt; 49 CFR DATABASE</span>
+                <span class="intro-check-status">LOADED ✓</span>
+            </div>
+            <div class="intro-check-line">
+                <span class="intro-check-label">&gt; USDOT 2195271</span>
+                <span class="intro-check-status">AUTHORIZED ✓</span>
+            </div>
+            <div class="intro-check-line">
+                <span class="intro-check-label">&gt; SYSTEM</span>
+                <span class="intro-check-status">READY</span>
+            </div>
+        </div>
+    </div>
+    <div class="intro-skip-hint">Click para saltar</div>
+</div>
+
+<main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl shadow-black/40 p-6 sm:p-8 border border-slate-800">
+        <div class="text-center mb-6">
+            <img src="/img/dotbot-header.png" alt="BOTDOT" class="w-16 h-16 rounded-xl mx-auto mb-3 shadow-lg shadow-blue-900/40" />
+            <h1 class="text-2xl font-bold text-slate-100">BOTDOT</h1>
+            <p class="text-sm text-slate-400 mt-1">Asistente de Compliance DOT/FMCSA</p>
+        </div>
+
+        <EditForm Model="form" OnValidSubmit="HandleSubmitAsync" FormName="loginForm" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                <InputText id="email" type="email" @bind-Value="form.Email" required autocomplete="email"
+                    class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                    placeholder="@EmailPlaceholder" />
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-300 mb-1">Contraseña</label>
+                <InputText id="password" type="password" @bind-Value="form.Password" required autocomplete="current-password"
+                    class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" />
+            </div>
+            @if (!string.IsNullOrEmpty(errorMsg))
+            {
+                <div class="bg-red-950/60 border border-red-800 text-red-300 text-sm rounded-lg p-3">@errorMsg</div>
+            }
+            <button type="submit" disabled="@busy"
+                class="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold transition disabled:opacity-50">
+                @(busy ? "Validando..." : "Entrar")
+            </button>
+        </EditForm>
+
+        <p class="text-xs text-slate-500 text-center mt-6">
+            Acceso restringido al personal autorizado de Intelogix.<br />
+            USDOT 2195271 - v0.2.0
+        </p>
+    </div>
+</main>
+<footer class="text-center text-xs text-slate-500 p-4">
+    Esta herramienta no constituye asesoría legal.
+</footer>
+
+@code {
+    private const string EmailPlaceholder = "tu@intelogix.mx";
+    private LoginForm form = new();
+    private string? errorMsg;
+    private bool busy;
+
+    public class LoginForm
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        errorMsg = null;
+        busy = true;
+        try
+        {
+            // POST /api/auth/login con cookies — el server setea el JWT como
+            // cookie HttpOnly. Reusamos el mismo endpoint que el Node usa.
+            var http = HttpFactory.CreateClient("self");
+            http.BaseAddress ??= new Uri(Nav.BaseUri);
+            var res = await http.PostAsJsonAsync("/api/auth/login", new
+            {
+                email = form.Email,
+                password = form.Password,
+            });
+            var body = await res.Content.ReadFromJsonAsync<LoginResponse>();
+            if (!res.IsSuccessStatusCode || body == null)
+            {
+                errorMsg = body?.error ?? "Error de autenticacion";
+                return;
+            }
+            // Si admin reseteo la pass, forzar el change antes de cualquier otra cosa
+            // (matchea login.js del Node). Apuntamos a las HTML estaticas mientras
+            // las paginas no esten migradas a Blazor; conforme se migren, se actualiza
+            // el destino aqui (ej. /app.html → /app).
+            Nav.NavigateTo(body.must_change_password ? "/change-password.html" : "/app.html", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            errorMsg = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private class LoginResponse
+    {
+        public string? error { get; set; }
+        public bool must_change_password { get; set; }
+    }
+}
