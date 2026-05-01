@@ -34,13 +34,19 @@ console.log(`Browser: ${BROWSER}`);
 
 // Lista de docs a convertir. Orden = orden en el indice del PDF entregable.
 const DOCS = [
-  { title: 'README',           src: path.join(ROOT, 'README.md'),               out: 'README.pdf' },
-  { title: 'Architecture',     src: path.join(ROOT, 'docs', 'ARCHITECTURE.md'), out: 'ARCHITECTURE.pdf' },
-  { title: 'API Reference',    src: path.join(ROOT, 'docs', 'API_REFERENCE.md'),out: 'API_REFERENCE.pdf' },
-  { title: 'Security Posture', src: path.join(ROOT, 'docs', 'SECURITY.md'),     out: 'SECURITY.pdf' },
-  { title: 'Deploy Guide',     src: path.join(ROOT, 'docs', 'DEPLOY.md'),       out: 'DEPLOY.pdf' },
-  { title: 'QA Report',        src: path.join(ROOT, 'docs', 'QA_REPORT.md'),    out: 'QA_REPORT.pdf' },
-  { title: 'Handoff a Desarrollo', src: path.join(ROOT, 'docs', 'HANDOFF.md'),  out: 'HANDOFF.pdf' },
+  // Stack original Node (v0.1.0)
+  { title: 'README',                src: path.join(ROOT, 'README.md'),                  out: 'README.pdf' },
+  { title: 'Architecture',          src: path.join(ROOT, 'docs', 'ARCHITECTURE.md'),    out: 'ARCHITECTURE.pdf' },
+  { title: 'API Reference',         src: path.join(ROOT, 'docs', 'API_REFERENCE.md'),   out: 'API_REFERENCE.pdf' },
+  { title: 'Security Posture',      src: path.join(ROOT, 'docs', 'SECURITY.md'),        out: 'SECURITY.pdf' },
+  { title: 'Deploy Guide (Node)',   src: path.join(ROOT, 'docs', 'DEPLOY.md'),          out: 'DEPLOY.pdf' },
+  { title: 'QA Report',             src: path.join(ROOT, 'docs', 'QA_REPORT.md'),       out: 'QA_REPORT.pdf' },
+  { title: 'Handoff a Desarrollo',  src: path.join(ROOT, 'docs', 'HANDOFF.md'),         out: 'HANDOFF.pdf' },
+
+  // Port .NET (v0.2.0)
+  { title: 'BotDot .NET — README',  src: path.join(ROOT, 'dotnet', 'README.md'),        out: 'DOTNET_README.pdf' },
+  { title: 'Deploy Guide (.NET)',   src: path.join(ROOT, 'docs', 'DEPLOY_NET.md'),      out: 'DEPLOY_NET.pdf' },
+  { title: 'Port Handoff Node→.NET', src: path.join(ROOT, 'docs', 'PORT_HANDOFF.md'),   out: 'PORT_HANDOFF.pdf' },
 ];
 
 // CSS optimizado para print A4. Tipografia compacta + tablas legibles.
