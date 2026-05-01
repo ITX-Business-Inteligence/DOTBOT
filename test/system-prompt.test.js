@@ -270,6 +270,47 @@ describe('SYSTEM_PROMPT_BASE — tono de asesor (no directivo)', () => {
   });
 });
 
+describe('SYSTEM_PROMPT_BASE — profundidad de asesoria (4 reglas)', () => {
+  test('seccion PROFUNDIDAD DE ASESORIA presente', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /PROFUNDIDAD DE ASESORIA/);
+  });
+
+  test('regla 1: conectar consulta con BASICs en alert del carrier', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /CONECTA CON LOS BASICs EN ALERT DEL CARRIER/);
+    assert.match(SYSTEM_PROMPT_BASE, /91 con 26 meses cronicos/);
+  });
+
+  test('regla 2: si lo hacen igual, esto cuesta — costo tangible', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /SI LO HACEN IGUAL, ESTO CUESTA/);
+    assert.match(SYSTEM_PROMPT_BASE, /multa promedio FMCSA/);
+    assert.match(SYSTEM_PROMPT_BASE, /NO inventes un monto exacto/);
+  });
+
+  test('regla 3: alternativas obligatorias cuando la recomendacion es NO', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /ALTERNATIVAS OBLIGATORIAS CUANDO LA RECOMENDACION ES NO/);
+    assert.match(SYSTEM_PROMPT_BASE, /Minimo 2 alternativas, idealmente 3/);
+  });
+
+  test('regla 4: calibrar confianza — FIRME / BORDERLINE / NO TENGO DATO', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /CALIBRA TU CONFIANZA EN EL LENGUAJE/);
+    for (const nivel of [/\*\*FIRME\*\*/, /\*\*BORDERLINE\*\*/, /\*\*NO TENGO DATO SOLIDO\*\*/]) {
+      assert.match(SYSTEM_PROMPT_BASE, nivel);
+    }
+  });
+
+  test('formato operacional incluye SI LO HACEN IGUAL como campo opcional', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /SI LO HACEN IGUAL \(opcional/);
+  });
+
+  test('formato operacional incluye CONFIANZA como campo opcional', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /CONFIANZA: <FIRME \/ BORDERLINE \/ NO TENGO DATO SOLIDO>/);
+  });
+
+  test('alternativas marcadas OBLIGATORIO cuando recomendacion es SUGIERO NO PROCEDER', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /OBLIGATORIO si la recomendacion es SUGIERO NO PROCEDER/);
+  });
+});
+
 describe('SYSTEM_PROMPT_BASE — formato operacional usa RECOMENDACION (no DECISION)', () => {
   test('header del formato dice RECOMENDACION, no DECISION', () => {
     assert.match(SYSTEM_PROMPT_BASE, /RECOMENDACION: SUGIERO PROCEDER/);
