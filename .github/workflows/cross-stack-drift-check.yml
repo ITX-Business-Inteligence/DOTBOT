@@ -1,0 +1,157 @@
+# Verificacion semanal de drift entre los assets frontend de Node (public/)
+# y los espejos en .NET (dotnet/BotDot.Web/wwwroot/). Si detecta drift,
+# sincroniza Node → .NET (Node es canonico), abre PR para revisar el cambio,
+# y notifica via PR description.
+#
+# Trigger:
+#   - schedule: lunes 09:23 UTC semanal (off-minute para no chocar con
+#     el resto del fleet que pone :00)
+#   - workflow_dispatch: invocacion manual desde la tab Actions
+#   - push a main: corre la verificacion (no fix) para detectar drift
+#     introducido por un PR antes de que se acumule
+
+name: cross-stack drift check
+
+on:
+  schedule:
+    - cron: '23 9 * * 1'  # lunes 09:23 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'dotnet/BotDot.Web/wwwroot/**'
+
+permissions:
+  contents: write       # crear branch + commit
+  pull-requests: write  # abrir PR
+
+jobs:
+  check-and-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Token con permisos del workflow para push y abrir PRs
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run frontend cross-stack verifier
+        id: verify
+        run: |
+          set +e
+          node scripts/verify-cross-stack-frontend.js > /tmp/verify-output.txt 2>&1
+          EXIT=$?
+          cat /tmp/verify-output.txt
+          echo "exit_code=$EXIT" >> "$GITHUB_OUTPUT"
+          # Capturar el output para usarlo en el PR body si hace falta
+          {
+            echo 'verify_output<<EOF'
+            cat /tmp/verify-output.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Alert on .NET-only files (exit 2)
+        if: steps.verify.outputs.exit_code == '2'
+        run: |
+          echo "::error title=Cross-stack drift::Hay archivos solo en .NET sin equivalente Node. Revisar manualmente — puede ser intencional o drift estructural."
+          exit 1
+
+      - name: Sync Node → .NET if drift detected (exit 1)
+        if: steps.verify.outputs.exit_code == '1'
+        id: sync
+        run: |
+          set -e
+          BRANCH="chore/sync-frontend-cross-stack-$(date +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Si ya existe un PR abierto con la misma rama, vamos a actualizar esa.
+          # Sino, creamos rama nueva.
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+          else
+            git checkout -b "$BRANCH"
+          fi
+
+          # Aplicar el sync
+          node scripts/verify-cross-stack-frontend.js --fix
+
+          # Si despues del sync no hay diff (caso raro: race condition con otro PR),
+          # salir sin commit
+          if git diff --quiet; then
+            echo "Sync no produjo cambios — saliendo sin PR"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Commit
+          git add dotnet/BotDot.Web/wwwroot/
+          git commit -m "chore: sync frontend assets Node → .NET
+
+          Drift detectado por cross-stack-drift-check workflow.
+          Node (public/) es la fuente canonica.
+
+          Archivos sincronizados:
+          $(git diff HEAD~1 --name-only | sed 's|^|- |')
+
+          [skip ci]"
+          git push origin "$BRANCH"
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update PR
+        if: steps.verify.outputs.exit_code == '1' && steps.sync.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.sync.outputs.branch }}
+        run: |
+          set -e
+          # Si ya hay PR abierto desde esta rama, gh PR create da error — chequeamos primero
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || echo "")
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING ya existe en $BRANCH — actualizado con el push"
+            gh pr comment "$EXISTING" --body "Drift detectado nuevamente y sincronizado. Revisar diff actualizada."
+          else
+            gh pr create \
+              --title "chore: sync frontend cross-stack (Node → .NET)" \
+              --body "## Resumen
+
+          El workflow [cross-stack-drift-check](.github/workflows/cross-stack-drift-check.yml) detecto drift entre los assets frontend de Node (public/) y los espejos en .NET (dotnet/BotDot.Web/wwwroot/).
+
+          Node es la fuente canonica — los archivos del wwwroot fueron sincronizados desde public/.
+
+          ## Output del verificador
+
+          \`\`\`
+          ${{ steps.verify.outputs.verify_output }}
+          \`\`\`
+
+          ## Test plan
+
+          - [ ] Revisar el diff por archivo — confirmar que los cambios en public/ son intencionales
+          - [ ] Si algun cambio NO debio aplicarse a .NET (porque esa pagina migro a Blazor), borrar el archivo de wwwroot/ en lugar de aceptar el sync
+          - [ ] Mergear si todo OK
+
+          🤖 Generated with [Claude Code](https://claude.com/claude-code)" \
+              --head "$BRANCH" \
+              --base main
+          fi
+
+      - name: Final report
+        if: always()
+        run: |
+          case "${{ steps.verify.outputs.exit_code }}" in
+            0) echo "::notice::Frontend cross-stack OK — sin drift" ;;
+            1) echo "::notice::Drift detectado y sincronizado en PR" ;;
+            2) echo "::error::Archivos solo en .NET — requiere revision manual" ;;
+            *) echo "::error::Verifier salio con codigo inesperado: ${{ steps.verify.outputs.exit_code }}" ;;
+          esac
