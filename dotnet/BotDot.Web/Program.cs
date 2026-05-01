@@ -13,6 +13,7 @@ using BotDot.Web.Auth;
 using BotDot.Web.Configuration;
 using BotDot.Web.Data;
 using BotDot.Web.Email;
+using BotDot.Web.Jobs;
 using BotDot.Web.Routes;
 using Serilog;
 
@@ -97,6 +98,20 @@ try
     builder.Services.AddSingleton<IInflightGate, InMemoryInflightGate>();
     builder.Services.AddSingleton<BudgetService>();
     builder.Services.AddSingleton<DriverImporter>();
+
+    // Jobs background — Fase 7. Singletons para que /admin/sync/run y
+    // /admin/cfr/run y /notifications/run-job puedan invocar metodos
+    // ad-hoc fuera del schedule del background service.
+    builder.Services.AddSingleton<SamsaraSyncRunner>();
+    builder.Services.AddSingleton<SamsaraSyncService>();
+    builder.Services.AddSingleton<ExpirationAlertsService>();
+    builder.Services.AddSingleton<CfrFetcher>();
+    builder.Services.AddSingleton<CfrUpdateService>();
+    // Registrar como IHostedService leyendo del singleton — asi tenemos
+    // una sola instancia que: corre el cron Y atiende invocaciones ad-hoc.
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<SamsaraSyncService>());
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<ExpirationAlertsService>());
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<CfrUpdateService>());
 
     // JSON: usar snake_case en wire format (matchea el contrato del Node:
     // current_password, must_change_password, full_name, etc). Dentro de C#

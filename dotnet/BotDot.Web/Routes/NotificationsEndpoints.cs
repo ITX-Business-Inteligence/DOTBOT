@@ -4,6 +4,7 @@
 using BotDot.Web.Audit;
 using BotDot.Web.Auth;
 using BotDot.Web.Data;
+using BotDot.Web.Jobs;
 
 namespace BotDot.Web.Routes;
 
@@ -109,12 +110,21 @@ public static class NotificationsEndpoints
         return Results.Json(new { dismissed = true });
     }
 
-    private static IResult RunJobAsync()
+    private static async Task<IResult> RunJobAsync(ExpirationAlertsService svc)
     {
-        // Stub Fase 5 — Fase 7 implementa el job runner para expiration alerts.
-        return Results.Json(new
+        try
         {
-            error = "Run-job pendiente Fase 7. El cron del Node sigue activo si esta corriendo."
-        }, statusCode: 503);
+            var result = await svc.RunAsync();
+            return Results.Json(new
+            {
+                scanned = result.Scanned,
+                inserted = result.Inserted,
+                elapsed_ms = result.ElapsedMs,
+            });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 500);
+        }
     }
 }

@@ -3,6 +3,7 @@
 
 using BotDot.Web.Auth;
 using BotDot.Web.Data;
+using BotDot.Web.Jobs;
 
 namespace BotDot.Web.Routes;
 
@@ -41,18 +42,26 @@ public static class AdminSyncCfrEndpoints
         return Results.Json(new { runs, last_success = lastSuccess });
     }
 
-    private static IResult SyncRunAsync(string resource)
+    private static async Task<IResult> SyncRunAsync(string resource, SamsaraSyncService sync)
     {
-        // Stub Fase 5 — implementacion real va en Fase 7 (jobs background).
-        // El Node manda a sync/drivers/vehicles/hos. Por ahora respondemos
-        // 503 con mensaje claro.
         var validResources = new[] { "drivers", "vehicles", "hos_clocks" };
         if (!validResources.Contains(resource))
             return Results.Json(new { error = $"Resource invalido. Usa: {string.Join(", ", validResources)}" }, statusCode: 400);
-        return Results.Json(new
+
+        try
         {
-            error = "Sync ad-hoc pendiente Fase 7 (jobs background). Por ahora la cadena Node sigue activa para sync."
-        }, statusCode: 503);
+            switch (resource)
+            {
+                case "drivers": await sync.RunDriversAsync(); break;
+                case "vehicles": await sync.RunVehiclesAsync(); break;
+                case "hos_clocks": await sync.RunHosClocksAsync(); break;
+            }
+            return Results.Json(new { ok = true, resource });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 500);
+        }
     }
 
     // ─── CFR ─────────────────────────────────────────────────────
@@ -94,12 +103,16 @@ public static class AdminSyncCfrEndpoints
         return Results.Json(new { section, versions = rows });
     }
 
-    private static IResult CfrRunAdHocAsync()
+    private static async Task<IResult> CfrRunAdHocAsync(CfrUpdateService svc)
     {
-        // Stub Fase 5 — Fase 7 implementa el job runner.
-        return Results.Json(new
+        try
         {
-            error = "CFR run ad-hoc pendiente Fase 7. El cron del Node sigue activo si esta corriendo."
-        }, statusCode: 503);
+            var result = await svc.RunAsync(trigger: "manual");
+            return Results.Json(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 500);
+        }
     }
 }
