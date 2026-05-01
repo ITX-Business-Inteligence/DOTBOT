@@ -270,6 +270,47 @@ describe('SYSTEM_PROMPT_BASE — tono de asesor (no directivo)', () => {
   });
 });
 
+describe('SYSTEM_PROMPT_BASE — regla 0 de PROPORCIONALIDAD', () => {
+  test('regla 0 PROPORCIONALIDAD presente al inicio de PROFUNDIDAD DE ASESORIA', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /0\.\s+\*\*PROPORCIONALIDAD/);
+  });
+
+  test('contiene tabla de aplicacion por tipo de consulta', () => {
+    for (const tipo of [
+      /Informativa pura/,
+      /Operacional ligera/,
+      /Operacional hipotetica/,
+      /Operacional con peso real/,
+      /Operacional con presion explicita/,
+    ]) {
+      assert.match(SYSTEM_PROMPT_BASE, tipo);
+    }
+  });
+
+  test('aclara que pregunta hipotetica NO activa reglas 2 y 3', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /Reglas 2 \(costo\) y 3 \(alternativas\) NO se activan/);
+  });
+
+  test('TONO refuerza proporcionalidad como no-negociable', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /PROPORCIONALIDAD — RESPUESTA CORTA A PREGUNTA CORTA/);
+    assert.match(SYSTEM_PROMPT_BASE, /no negociable/);
+  });
+
+  test('reglas 2 y 4 marcadas explicitamente como condicionales', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /SI LO HACEN IGUAL.*\(regla condicional/);
+    assert.match(SYSTEM_PROMPT_BASE, /CALIBRA TU CONFIANZA EN EL LENGUAJE.*\(regla condicional/);
+  });
+
+  test('da senales lexicas para subir/bajar nivel de respuesta', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /Senales para subir el nivel/);
+    assert.match(SYSTEM_PROMPT_BASE, /Senales para bajar/);
+  });
+
+  test('cuando dudes, baja un nivel', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /Cuando dudes, baja un nivel/);
+  });
+});
+
 describe('SYSTEM_PROMPT_BASE — profundidad de asesoria (4 reglas)', () => {
   test('seccion PROFUNDIDAD DE ASESORIA presente', () => {
     assert.match(SYSTEM_PROMPT_BASE, /PROFUNDIDAD DE ASESORIA/);
