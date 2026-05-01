@@ -241,6 +241,16 @@ pm2 delete botdot              # si usas pm2
 - [ ] Firewall: 22, 80, 443 (cerrar 5050 al exterior)
 - [ ] Cron de backup MySQL configurado con S3/R2 destination
 - [ ] Monitoring: UptimeRobot pinging `https://dispatch.intelogix.mx/api/health`
+- [ ] **Verificacion cross-stack (correr antes del cutover):** levantar el .NET y desde el repo correr los 4 verifiers — todos deben pasar verde:
+  ```bash
+  npm run verify-cross-stack            # audit chain canonicalize byte-exact
+  npm run verify-cross-stack-agent      # tool definitions byte-exact (15/15)
+  npm run verify-cross-stack-routes     # paridad de rutas /api/* (48/48)
+  npm run verify-cross-stack-frontend   # paridad assets frontend
+  ```
+  Cualquier rojo = cutover bloqueado hasta resolver. El workflow GitHub Actions
+  `.github/workflows/cross-stack-drift-check.yml` tambien corre weekly y abre
+  PR auto si detecta drift entre `public/*` y `dotnet/BotDot.Web/wwwroot/*`.
 
 ## Operacion
 

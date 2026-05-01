@@ -170,7 +170,12 @@ public class ExpirationAlertsService : BackgroundService
                 Evidence = new Dictionary<string, object?>
                 {
                     ["kind"] = finalKind, ["threshold"] = bucket.Value, ["urgency"] = urgency,
-                    ["expiration"] = expiration.ToString("yyyy-MM-dd"), ["days"] = days,
+                    // Formato ISO completo (con T00:00:00.000Z) para matchear el output
+                    // del Node, que canonicaliza Date como `Date.toISOString()`. Sin esto
+                    // el audit chain byte-exact entre Node y .NET se rompe en filas
+                    // generadas por este job.
+                    ["expiration"] = expiration.ToString("yyyy-MM-dd") + "T00:00:00.000Z",
+                    ["days"] = days,
                 },
             }, ct);
         }
@@ -183,8 +188,11 @@ public class ExpirationAlertsService : BackgroundService
                 var to = await GetRecipientsAsync(db, opts);
                 if (to.Count > 0)
                 {
-                    var subjectPrefix = urgency == "critical" ? "[CRITICAL]" : "[HIGH]";
-                    var subject = $"{subjectPrefix} BOTDOT — {title}";
+                    // Emoji prefix matchea el subject que produce el Node (src/jobs/expiration-alerts.js:119).
+                    // Si lo cambiamos a [CRITICAL]/[HIGH], el inbox de compliance ve dos formatos
+                    // distintos cuando los stacks corren en paralelo.
+                    var emojiPrefix = urgency == "critical" ? "🚨" : "⚠️";
+                    var subject = $"{emojiPrefix} BOTDOT — {title}";
                     var result = await email.SendAsync(new EmailMessage { To = to, Subject = subject, Text = body }, ct);
                     await db.ExecuteAsync(
                         @"UPDATE notifications

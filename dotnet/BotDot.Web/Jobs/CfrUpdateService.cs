@@ -283,7 +283,9 @@ public class CfrUpdateService : BackgroundService
         if (to.Count == 0) return;
 
         var totalNotices = changes.Count + added.Count;
-        var subject = $"[CRITICAL] BOTDOT — {totalNotices} cambios en 49 CFR (issue {issueDate})";
+        // Emoji subject matchea el del Node (src/jobs/cfr-update.js:79). Mantener
+        // alineado para que el inbox de compliance no vea formatos distintos.
+        var subject = $"🚨 BOTDOT — {totalNotices} cambios en 49 CFR (issue {issueDate})";
 
         var linesChanged = changes.Count > 0
             ? string.Join("\n", changes.Select(c => $"  - {c.Section}: {c.Title}\n    (texto modificado vs version del {c.PreviousFetchedAt})"))

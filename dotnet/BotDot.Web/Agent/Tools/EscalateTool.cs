@@ -150,12 +150,15 @@ public class EscalateToComplianceTool : ITool
                 return;
             }
 
+            // Matchea el mapping del Node en src/agent/tools/escalate.js:145.
+            // El email a compliance debe verse identico independiente de que stack
+            // lo emita.
             var emoji = urgency switch
             {
-                "critical" => "[CRITICAL]",
-                "high" => "[HIGH]",
-                "medium" => "[MEDIUM]",
-                _ => "[LOW]",
+                "critical" => "🚨",
+                "high" => "⚠️",
+                "medium" => "⚡",
+                _ => "📋",
             };
             var subject = $"{emoji} BOTDOT escalacion {urgency.ToUpperInvariant()} — {category} — #{escalationId}";
             var text =
