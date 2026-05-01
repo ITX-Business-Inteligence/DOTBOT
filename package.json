@@ -13,6 +13,7 @@
     "verify-audit": "node scripts/verify-audit-chain.js",
     "verify-cross-stack": "node scripts/verify-cross-stack-audit.js",
     "verify-cross-stack-agent": "node scripts/verify-cross-stack-agent.js",
+    "verify-cross-stack-routes": "node scripts/verify-cross-stack-routes.js",
     "backup": "bash scripts/backup.sh",
     "restore": "bash scripts/restore.sh",
     "test": "node --test \"test/*.test.js\""

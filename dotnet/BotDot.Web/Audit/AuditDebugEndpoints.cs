@@ -34,6 +34,39 @@ public static class AuditDebugEndpoints
             return Results.Json(new { tools = defs });
         });
 
+        // GET /api/_debug/routes
+        // Devuelve todas las rutas /api/* registradas (path + method).
+        // Para verificar paridad cross-stack contra los routes del Node.
+        app.MapGet("/api/_debug/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
+        {
+            var routes = new List<RouteInfo>();
+            foreach (var ep in eds.Endpoints)
+            {
+                if (ep is not Microsoft.AspNetCore.Routing.RouteEndpoint re) continue;
+                var pattern = re.RoutePattern.RawText ?? "";
+                if (!pattern.StartsWith("/api/") && pattern != "/api") continue;
+                if (pattern.StartsWith("/api/_debug/")) continue;
+                var methods = re.Metadata
+                    .OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
+                    .FirstOrDefault()
+                    ?.HttpMethods ?? Array.Empty<string>();
+                foreach (var m in methods)
+                {
+                    routes.Add(new RouteInfo { Method = m, Path = pattern });
+                }
+            }
+            var ordered = routes
+                .OrderBy(r => r.Path, StringComparer.Ordinal)
+                .ThenBy(r => r.Method, StringComparer.Ordinal)
+                .Select(r => new { method = r.Method, path = r.Path })
+                .ToList();
+            return Results.Json(new
+            {
+                count = ordered.Count,
+                routes = ordered,
+            });
+        });
+
         // POST /api/_debug/audit/canonicalize
         // Body: { "mode": "value" | "audit_row", "value": <any JSON> }
         //   mode=value      → canonicaliza directo el JSON pasado
@@ -116,4 +149,10 @@ public class DebugCanonicalizeRequest
 {
     public string Mode { get; set; } = "value";
     public JsonElement Value { get; set; }
+}
+
+internal class RouteInfo
+{
+    public string Method { get; set; } = "";
+    public string Path { get; set; } = "";
 }
