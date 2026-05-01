@@ -378,21 +378,32 @@ public class DriverImporter
         return prev[b.Length];
     }
 
+    /// <summary>
+    /// Match fuzzy token-by-token. Reemplaza el threshold global del 10%
+    /// que tenia falso positivo:
+    ///   "Robert L Sanchez" ↔ "Roberto Sanchez" → matcheaba pero son
+    ///   personas distintas.
+    /// Algoritmo: mismo numero de tokens + cada token con distancia <= 1
+    /// (tokens de 1 char requieren match exacto).
+    /// </summary>
     public static bool NamesMatch(string a, string b)
     {
         if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
         if (a == b) return true;
 
-        // Apellido (ultima palabra) DEBE matchear exacto. Defensa adicional
-        // contra falsos positivos como "Robert L Sanchez" ↔ "Roberto Sanchez".
-        var partsA = a.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var partsB = b.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (partsA.Length == 0 || partsB.Length == 0) return false;
-        if (partsA[^1] != partsB[^1]) return false;
+        var tokensA = a.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var tokensB = b.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokensA.Length != tokensB.Length) return false;
 
-        // Threshold 5% (era 10%, demasiado laxo para nombres cortos).
-        var threshold = Math.Max(1, (int)(Math.Min(a.Length, b.Length) * 0.05));
-        return Levenshtein(a, b) <= threshold;
+        for (int i = 0; i < tokensA.Length; i++)
+        {
+            var ta = tokensA[i];
+            var tb = tokensB[i];
+            if (ta == tb) continue;
+            if (ta.Length < 2 || tb.Length < 2) return false;
+            if (Levenshtein(ta, tb) > 1) return false;
+        }
+        return true;
     }
 
     // ─── Match contra existentes ──────────────────────────────

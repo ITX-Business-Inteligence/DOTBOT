@@ -66,9 +66,13 @@ function renderAtRisk(data) {
     moreBtn.textContent = `Ver todos (${data.total_at_risk})`;
     moreBtn.classList.remove('hidden');
     moreBtn.onclick = () => {
-      // TODO: abrir /drivers.html cuando este construida (post-import-Excel).
-      // Por ahora le decimos al usuario que la vista completa esta en camino.
-      alert('La vista completa de drivers se habilita cuando importes el Excel de compliance. Por ahora ves los 5 mas urgentes.');
+      // /drivers.html ya existe (admin/compliance). Otros roles ven el aviso.
+      const role = window.BOTDOT?.user?.role;
+      if (role === 'admin' || role === 'compliance') {
+        location.href = '/drivers.html';
+      } else {
+        alert(`Estas viendo los ${5} drivers mas urgentes. La vista completa esta disponible para admin/compliance.`);
+      }
     };
   } else {
     moreBtn.classList.add('hidden');

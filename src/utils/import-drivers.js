@@ -110,23 +110,34 @@ function levenshtein(a, b) {
   return prev[b.length];
 }
 
-// Threshold de match fuzzy. Endurecido tras detectar falso positivo:
-// "Robert L Sanchez" ↔ "Roberto Sanchez" matcheaban con threshold 2 al 10%.
-// Cambios:
-//   - Threshold 5% en vez de 10% (mas estricto)
-//   - Apellido (ultima palabra) DEBE matchear exacto — sino los nombres
-//     comparten solo el primer nombre y son personas distintas
+// Match fuzzy token-by-token. Reemplaza el threshold global del 10% que
+// tenia falso positivo:
+//   "Robert L Sanchez" ↔ "Roberto Sanchez" → matcheaba (dist 2 ≤ threshold 2)
+//   pero son personas distintas.
+//
+// Algoritmo nuevo:
+//   1. Mismo numero de tokens (palabras) — diferenciar "Robert L Sanchez"
+//      (3 tokens) de "Roberto Sanchez" (2 tokens) sin necesidad de Levenshtein
+//   2. Cada token correspondiente con distancia <= 1 — captura typos comunes
+//      (martinez/martines, albeiro/albeyro) sin permitir cambios estructurales
+//   3. Tokens muy cortos (<2 chars) requieren match exacto — initials como
+//      "L" no toleran sustitucion
 function namesMatch(normA, normB) {
   if (!normA || !normB) return false;
   if (normA === normB) return true;
 
-  // Apellido = ultima palabra. Tiene que ser identico para considerar match.
-  const lastA = normA.split(' ').pop();
-  const lastB = normB.split(' ').pop();
-  if (lastA !== lastB) return false;
+  const tokensA = normA.split(' ').filter(Boolean);
+  const tokensB = normB.split(' ').filter(Boolean);
+  if (tokensA.length !== tokensB.length) return false;
 
-  const threshold = Math.max(1, Math.floor(Math.min(normA.length, normB.length) * 0.05));
-  return levenshtein(normA, normB) <= threshold;
+  for (let i = 0; i < tokensA.length; i++) {
+    const a = tokensA[i];
+    const b = tokensB[i];
+    if (a === b) continue;
+    if (a.length < 2 || b.length < 2) return false;
+    if (levenshtein(a, b) > 1) return false;
+  }
+  return true;
 }
 
 // ─── Parsing del xlsx ───────────────────────────────────────────

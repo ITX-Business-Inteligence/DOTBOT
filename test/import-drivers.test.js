@@ -157,9 +157,11 @@ describe('namesMatch', () => {
     assert.equal(namesMatch('roberto sanchez', 'roberto sanchez'), true);
   });
 
-  test('match dentro del threshold (caso del Excel real)', () => {
-    // distance = 2, threshold para 15 chars = max(2, 1) = 2 → match
-    assert.equal(namesMatch('robert l sanchez', 'roberto sanchez'), true);
+  test('Robert L Sanchez NO matchea Roberto Sanchez (token count distinto)', () => {
+    // Bug detectado en uso real: tokens diferentes (3 vs 2) — son personas
+    // distintas aunque char-similar. Algoritmo viejo (threshold 10%) los
+    // matcheaba (false positive); el algoritmo token-by-token los rechaza.
+    assert.equal(namesMatch('robert l sanchez', 'roberto sanchez'), false);
   });
 
   test('no match cuando son completamente diferentes', () => {
@@ -172,19 +174,27 @@ describe('namesMatch', () => {
     assert.equal(namesMatch('', ''), false);
   });
 
-  test('una letra de diferencia en nombres cortos NO matchea (threshold=2)', () => {
-    // "ana" vs "ano" = 1 char distance, min length 3, threshold = max(2, 0) = 2
-    // 1 <= 2 → match. Es esperado: nombres muy cortos son ambiguos.
-    assert.equal(namesMatch('ana lopez', 'ano lopez'), true);
-  });
-
-  test('nombres largos toleran ~10% de diferencia', () => {
-    // "albeiro enrique martinez pineda" (30 chars) — threshold floor(30*0.1)=3
-    // "albeyro enrique martines pineda" — distance 2
+  test('typo de una letra por token matchea (martinez/martines, albeiro/albeyro)', () => {
+    // Cada token con distancia 1, mismo numero de tokens → match.
     assert.equal(
       namesMatch('albeiro enrique martinez pineda', 'albeyro enrique martines pineda'),
       true
     );
+  });
+
+  test('typo simple en un solo token matchea', () => {
+    // "ana lopez" ↔ "ano lopez": ana/ano dist 1 + lopez exact → match
+    assert.equal(namesMatch('ana lopez', 'ano lopez'), true);
+  });
+
+  test('apellidos distintos NO matchean (Hernandez vs Sanchez)', () => {
+    // Token de apellido difiere mas alla de typo → no match.
+    assert.equal(namesMatch('roberto hernandez', 'roberto sanchez'), false);
+  });
+
+  test('initials (1 char) requieren match exacto', () => {
+    // "Juan L Perez" vs "Juan F Perez": L y F son tokens cortos, no toleran sustitucion
+    assert.equal(namesMatch('juan l perez', 'juan f perez'), false);
   });
 
   test('typo grande NO matchea aunque suene parecido', () => {
