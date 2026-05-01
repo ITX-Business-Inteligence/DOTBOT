@@ -13,6 +13,7 @@ using BotDot.Web.Auth;
 using BotDot.Web.Configuration;
 using BotDot.Web.Data;
 using BotDot.Web.Email;
+using BotDot.Web.Routes;
 using Serilog;
 
 // Bootstrap Serilog antes del builder para capturar errores tempranos.
@@ -93,6 +94,9 @@ try
     }
     ToolRegistry.RegisterTools(builder.Services);
     builder.Services.AddSingleton<ChatService>();
+    builder.Services.AddSingleton<IInflightGate, InMemoryInflightGate>();
+    builder.Services.AddSingleton<BudgetService>();
+    builder.Services.AddSingleton<DriverImporter>();
 
     // JSON: usar snake_case en wire format (matchea el contrato del Node:
     // current_password, must_change_password, full_name, etc). Dentro de C#
@@ -192,6 +196,13 @@ try
     app.MapAuthEndpoints();
     app.MapAuditEndpoints();
     app.MapChatEndpoints();
+    app.MapDashboardEndpoints();
+    app.MapAdminUsersEndpoints();
+    app.MapAdminDriversEndpoints();
+    app.MapAdminSyncCfrEndpoints();
+    app.MapEscalationsEndpoints();
+    app.MapNotificationsEndpoints();
+    app.MapAnalyticsEndpoints();
 
     // Static files (wwwroot/) — equivalente a express.static('public').
     app.UseDefaultFiles();
