@@ -12,20 +12,20 @@ public class SamsaraGetDriverHosTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "samsara_get_driver_hos",
-        "Obtiene el HOS clock en tiempo real de un driver: drive_time, on_duty_time, cycle_time, clock_state. Usa esto SIEMPRE antes de recomendar una asignacion (regla 2 — todo o herramienta).",
+        "Consulta el estado HOS en tiempo real de un driver via Samsara API. Devuelve tiempos usados/disponibles para drive (11h), duty (14h) y cycle (70h).",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["driver"] = new { type = "string", description = "samsara_id (ej. 'sams_d_001') o nombre parcial del driver" },
+                ["driver_name_or_id"] = new { type = "string", description = "Nombre completo del driver o samsara_id. El sistema buscara primero por samsara_id, luego por match exacto de nombre." },
             },
-            required = new[] { "driver" },
+            required = new[] { "driver_name_or_id" },
         });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
-        var query = ToolInputs.GetString(input, "driver") ?? "";
+        var query = ToolInputs.GetString(input, "driver_name_or_id") ?? "";
         var clock = await _samsara.GetDriverHosAsync(query, ct);
         if (clock == null)
             return new { error = "No se encontro driver con esa query", query };
@@ -58,13 +58,13 @@ public class SamsaraSearchDriverTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "samsara_search_driver",
-        "Busca drivers por nombre parcial. Devuelve los matches con samsara_id, name, CDL, medical card, endorsements.",
+        "Busca drivers por nombre parcial. Devuelve hasta 10 matches con samsara_id y CDL info.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["query"] = new { type = "string", description = "Texto parcial a buscar en el nombre" },
+                ["query"] = new { type = "string", description = "Texto parcial del nombre" },
             },
             required = new[] { "query" },
         });
@@ -96,19 +96,27 @@ public class SamsaraGetDriversNearLimitTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "samsara_get_drivers_near_limit",
-        "Lista drivers cerca de algun limite HOS. Util cuando el dispatcher necesita alternativas para asignar load (regla 5 — recomendar alternativas).",
+        "Lista drivers que estan a menos de N minutos de algun limite HOS (drive 11h, duty 14h, cycle 70h). Util para alertas proactivas de supervisor.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["threshold_min"] = new { type = "number", description = "Umbral en minutos restantes. Default 120 (2 horas)." },
+                ["threshold_minutes"] = new { type = "integer", description = "Minutos restantes para considerar \"cerca\". Default 90.", @default = 90 },
+                ["limit_type"] = new
+                {
+                    type = "string",
+                    @enum = new[] { "drive", "duty", "cycle", "any" },
+                    description = "Cual limite considerar. Default any.",
+                    @default = "any",
+                },
             },
         });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
-        var threshold = ToolInputs.GetInt(input, "threshold_min") ?? 120;
+        var threshold = ToolInputs.GetInt(input, "threshold_minutes") ?? 90;
+        var limitType = ToolInputs.GetString(input, "limit_type") ?? "any";
         var clocks = await _samsara.GetHosClocksAsync(ct);
         var near = clocks
             .Select(c => new
@@ -117,12 +125,19 @@ public class SamsaraGetDriversNearLimitTool : ITool
                 driver_name = c.DriverName,
                 drive_remaining_min = Math.Max(0, 11 * 60 - c.DrivingTimeSec / 60),
                 duty_remaining_min = Math.Max(0, 14 * 60 - c.OnDutyTimeSec / 60),
+                cycle_remaining_min = Math.Max(0, 70 * 60 - c.CycleTimeSec / 60),
                 clock_state = c.ClockState,
             })
-            .Where(x => x.drive_remaining_min <= threshold || x.duty_remaining_min <= threshold)
+            .Where(x => limitType switch
+            {
+                "drive" => x.drive_remaining_min <= threshold,
+                "duty" => x.duty_remaining_min <= threshold,
+                "cycle" => x.cycle_remaining_min <= threshold,
+                _ => x.drive_remaining_min <= threshold || x.duty_remaining_min <= threshold || x.cycle_remaining_min <= threshold,
+            })
             .OrderBy(x => x.drive_remaining_min)
             .ToList();
-        return new { count = near.Count, threshold_min = threshold, drivers = near };
+        return new { count = near.Count, threshold_minutes = threshold, limit_type = limitType, drivers = near };
     }
 }
 
@@ -133,20 +148,20 @@ public class SamsaraGetVehicleStatusTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "samsara_get_vehicle_status",
-        "Obtiene status de un vehiculo (unit, OOS flag, annual inspection, etc).",
+        "Consulta status de un vehiculo: annual inspection, OOS pendiente, mantenimiento.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["vehicle"] = new { type = "string", description = "samsara_id, unit number, o VIN" },
+                ["vin_or_unit"] = new { type = "string", description = "VIN o numero de unidad" },
             },
-            required = new[] { "vehicle" },
+            required = new[] { "vin_or_unit" },
         });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
-        var q = (ToolInputs.GetString(input, "vehicle") ?? "").Trim();
+        var q = (ToolInputs.GetString(input, "vin_or_unit") ?? "").Trim();
         var ql = q.ToLowerInvariant();
         var all = await _samsara.ListVehiclesAsync(ct);
         var v = all.FirstOrDefault(x =>
@@ -180,22 +195,24 @@ public class CheckAssignmentComplianceTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "check_assignment_compliance",
-        "Aplica reglas 49 CFR 395.3 (HOS) a una asignacion: PROCEED / CONDITIONAL / DECLINE. Necesita driver + drive_min estimado.",
+        "Evalua si una asignacion propuesta (driver + load) es compliant con HOS. Aplica 49 CFR 395.3 (11hr/14hr/70hr) y verifica gap. Devuelve PROCEED/CONDITIONAL/DECLINE con razon y CFR citado.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["driver"] = new { type = "string", description = "samsara_id o nombre del driver" },
-                ["estimated_drive_min"] = new { type = "number", description = "Minutos estimados de manejo de la asignacion" },
+                ["driver_name_or_id"] = new { type = "string" },
+                ["estimated_drive_minutes"] = new { type = "integer", description = "Minutos estimados de manejo del load" },
+                ["load_window_minutes"] = new { type = "integer", description = "Ventana total disponible incluyendo paradas, pickup, delivery (default = drive_minutes + 120)" },
+                ["load_reference"] = new { type = "string", description = "ID/referencia de la load para audit" },
             },
-            required = new[] { "driver", "estimated_drive_min" },
+            required = new[] { "driver_name_or_id", "estimated_drive_minutes" },
         });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
-        var driver = ToolInputs.GetString(input, "driver") ?? "";
-        var estDriveMin = ToolInputs.GetInt(input, "estimated_drive_min") ?? 0;
+        var driver = ToolInputs.GetString(input, "driver_name_or_id") ?? "";
+        var estDriveMin = ToolInputs.GetInt(input, "estimated_drive_minutes") ?? 0;
 
         var clock = await _samsara.GetDriverHosAsync(driver, ct);
         if (clock == null)

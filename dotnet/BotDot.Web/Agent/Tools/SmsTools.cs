@@ -17,7 +17,7 @@ public class QueryBasicsStatusTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "query_basics_status",
-        "Devuelve el snapshot mas reciente de los 7 BASICs con score, threshold y flag de alert. Source: SMS de FMCSA.",
+        "Devuelve el estado actual de los 7 BASICs del carrier (score, threshold, alert, months in alert) basado en el snapshot mas reciente del SMS.",
         new { type = "object", properties = new Dictionary<string, object>() });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
@@ -40,21 +40,22 @@ public class QueryTopViolationsTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "query_top_violations",
-        "Pareto de violaciones por puntos (top N). Filtros opcionales por basic.",
+        "Top N violaciones por puntos totales en un BASIC (o todos). Util para Pareto y plan de mitigacion.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["basic"] = new { type = "string", description = "Filtra por BASIC name (ej. 'Vehicle Maintenance')" },
-                ["limit"] = new { type = "number", description = "Max resultados, default 10" },
+                ["basic"] = new { type = "string", description = "Nombre del BASIC o \"all\" para todos. Default all." },
+                ["limit"] = new { type = "integer", @default = 15 },
             },
         });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
         var basic = ToolInputs.GetString(input, "basic");
-        var limit = Math.Min(50, ToolInputs.GetInt(input, "limit") ?? 10);
+        if (basic == "all") basic = null;
+        var limit = Math.Min(50, ToolInputs.GetInt(input, "limit") ?? 15);
         string sql = @"SELECT basic_name, viol_code, description, total_points, count_inst
                        FROM sms_violations
                        WHERE 1=1 " + (basic != null ? "AND basic_name = @Basic " : "") +
@@ -71,13 +72,14 @@ public class QueryDriverInspectionsTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "query_driver_inspections",
-        "Historial de inspecciones roadside de un driver. Source: SMS.",
+        "Lista inspecciones recientes de un driver (por nombre) con sus violaciones. Util para coaching y patrones.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["driver_name"] = new { type = "string", description = "Nombre parcial del driver" },
+                ["driver_name"] = new { type = "string" },
+                ["days"] = new { type = "integer", description = "Ventana en dias. Default 365.", @default = 365 },
             },
             required = new[] { "driver_name" },
         });
@@ -103,7 +105,7 @@ public class QueryDataQsCandidatesTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "query_dataqs_candidates",
-        "Lista crashes que NO han sido disputados via DataQs y son candidatos a Not Preventable. Source: SMS.",
+        "Lista crashes que NO han sido disputados via DataQs y que potencialmente podrian ser Not Preventable. Util para sweep de DataQs.",
         new { type = "object", properties = new Dictionary<string, object>() });
 
     public async Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)

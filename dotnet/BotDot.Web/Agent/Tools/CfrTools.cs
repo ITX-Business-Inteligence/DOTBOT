@@ -104,13 +104,14 @@ public class SearchCfrTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "search_cfr",
-        "Busca secciones del 49 CFR (Parts 380-399 + Part 40) por keyword. Devuelve hasta 10 matches con section number, title y excerpt. Usa esto SIEMPRE antes de citar — la regla 3 obliga citas confirmadas con tool.",
+        "Busca secciones del 49 CFR Parts 380-399 (FMCSRs) por keywords. Usalo cuando necesites fundamentar una afirmacion regulatoria. Devuelve top matches con seccion, titulo y texto.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["query"] = new { type = "string", description = "Texto a buscar (ej. 'personal conveyance', '395.3', 'medical card')" },
+                ["query"] = new { type = "string", description = "Pregunta o tema a buscar (ej. \"Personal Conveyance\", \"false log\", \"annual inspection\")" },
+                ["limit"] = new { type = "integer", description = "Max matches a devolver. Default 5.", @default = 5 },
             },
             required = new[] { "query" },
         });
@@ -118,7 +119,8 @@ public class SearchCfrTool : ITool
     public Task<object?> HandleAsync(JsonElement input, ToolContext ctx, CancellationToken ct = default)
     {
         var q = ToolInputs.GetString(input, "query") ?? "";
-        var matches = _idx.Search(q);
+        var limit = ToolInputs.GetInt(input, "limit") ?? 5;
+        var matches = _idx.Search(q, limit);
         return Task.FromResult<object?>(new
         {
             count = matches.Count,
@@ -140,13 +142,13 @@ public class GetCfrSectionTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "get_cfr_section",
-        "Obtiene el texto completo de una seccion CFR especifica (ej. '395.3'). Usa para citar texto exacto en respuestas operacionales.",
+        "Devuelve el texto completo de una seccion CFR especifica.",
         new
         {
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["section"] = new { type = "string", description = "Section number en formato 'XYZ.W' (ej. '395.3', '391.41')" },
+                ["section"] = new { type = "string", description = "Numero de seccion (ej. \"395.3\", \"391.51\", \"382.701\")" },
             },
             required = new[] { "section" },
         });

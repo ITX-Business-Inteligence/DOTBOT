@@ -23,7 +23,7 @@ public class LogDecisionTool : ITool
             type = "object",
             properties = new Dictionary<string, object>
             {
-                ["action_type"] = new { type = "string", description = "Tipo de accion (ej. 'assignment_check','driver_lookup','basic_review','coaching_note','dataqs_review')" },
+                ["action_type"] = new { type = "string", description = "Tipo de accion (ej. \"assignment_check\",\"driver_lookup\",\"basic_review\",\"coaching_note\",\"dataqs_review\")" },
                 ["subject_type"] = new { type = "string", description = "Tipo del sujeto afectado (driver, vehicle, load, basic, crash)" },
                 ["subject_id"] = new { type = "string", description = "Identificador del sujeto" },
                 ["decision"] = new { type = "string", @enum = new[] { "proceed", "conditional", "decline", "override", "informational" } },
@@ -60,7 +60,7 @@ public class LogRefusedRequestTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "log_refused_request",
-        "Registra cuando rechazas una solicitud que podria ser violacion (ej. 'como hacer false log', 'ayudame con PC abuse'). Esto protege al carrier mostrando que el sistema desincentiva activamente las violaciones.",
+        "Registra cuando rechazas una solicitud que podria ser violacion (ej. \"como hacer false log\", \"ayudame con PC abuse\"). Esto protege al carrier mostrando que el sistema desincentiva activamente las violaciones.",
         new
         {
             type = "object",

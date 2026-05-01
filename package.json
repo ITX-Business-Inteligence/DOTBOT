@@ -12,6 +12,7 @@
     "ingest-sms": "node src/utils/ingest-sms.js",
     "verify-audit": "node scripts/verify-audit-chain.js",
     "verify-cross-stack": "node scripts/verify-cross-stack-audit.js",
+    "verify-cross-stack-agent": "node scripts/verify-cross-stack-agent.js",
     "backup": "bash scripts/backup.sh",
     "restore": "bash scripts/restore.sh",
     "test": "node --test \"test/*.test.js\""

@@ -1,12 +1,15 @@
-// Endpoint debug — SOLO se mapea en Development.
-// Existe para verificacion cross-stack del audit chain (scripts/verify-cross-stack-audit.js
-// del Node compara byte-a-byte el output de canonicalize de ambos stacks).
+// Endpoints debug — SOLO se mapean en Development.
+// Existen para verificacion cross-stack del audit chain y agent
+// (scripts/verify-cross-stack-*.js del Node comparan byte-a-byte
+// el output de ambos stacks).
 //
-// NUNCA mapear en Production: expone la primitiva canonicalize sin auth, lo
+// NUNCA mapear en Production: exponen primitivas internas sin auth, lo
 // cual no es vector real (no hay PII), pero filosoficamente no debe correr
 // fuera de dev.
 
 using System.Text.Json;
+using BotDot.Web.Agent;
+using BotDot.Web.Agent.Tools;
 
 namespace BotDot.Web.Audit;
 
@@ -14,6 +17,23 @@ public static class AuditDebugEndpoints
 {
     public static void MapAuditDebugEndpoints(this IEndpointRouteBuilder app)
     {
+        // GET /api/_debug/agent/tool-defs
+        // Devuelve la lista de TOOL_DEFINITIONS tal como se mandan a Anthropic.
+        // El script Node compara byte-a-byte con sus propias TOOL_DEFINITIONS.
+        app.MapGet("/api/_debug/agent/tool-defs", (ToolRegistry tools) =>
+        {
+            var defs = tools.AllDefinitions
+                .OrderBy(d => d.Name, StringComparer.Ordinal)
+                .Select(d => new
+                {
+                    name = d.Name,
+                    description = d.Description,
+                    input_schema = d.InputSchema,
+                })
+                .ToList();
+            return Results.Json(new { tools = defs });
+        });
+
         // POST /api/_debug/audit/canonicalize
         // Body: { "mode": "value" | "audit_row", "value": <any JSON> }
         //   mode=value      → canonicaliza directo el JSON pasado

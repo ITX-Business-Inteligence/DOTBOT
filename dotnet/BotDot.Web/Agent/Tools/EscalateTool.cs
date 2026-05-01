@@ -42,7 +42,7 @@ public class EscalateToComplianceTool : ITool
 
     public ToolDefinition Definition => ToolDefBuilder.Build(
         "escalate_to_compliance",
-        "Crea una escalacion al equipo de compliance cuando NO podes dar una recomendacion solida sobre un caso operacional (asignacion, fitness, decision regulatoria) por falta de data o ambiguedad. NO usar para preguntas off-topic, evasion, o saludos — esas tienen sus propias tools (log_off_topic / log_refused_request). NO usar para preguntas puramente informativas que simplemente no tenes en tu base — esas respondelas con 'no lo tengo, verifica en ecfr.gov'. USAR cuando el usuario esta por tomar una decision con consecuencias y vos no tenes fundamento para guiarla.",
+        "Crea una escalacion al equipo de compliance cuando NO podes dar una recomendacion solida sobre un caso operacional (asignacion, fitness, decision regulatoria) por falta de data o ambiguedad. NO usar para preguntas off-topic, evasion, o saludos — esas tienen sus propias tools (log_off_topic / log_refused_request). NO usar para preguntas puramente informativas que simplemente no tenes en tu base — esas respondelas con \"no lo tengo, verifica en ecfr.gov\". USAR cuando el usuario esta por tomar una decision con consecuencias y vos no tenes fundamento para guiarla.",
         new
         {
             type = "object",
@@ -60,7 +60,7 @@ public class EscalateToComplianceTool : ITool
                     @enum = new[] { "low", "medium", "high", "critical" },
                     description = "critical: violacion inminente o decision de minutos. high: decision pendiente del dia con riesgo regulatorio. medium: pregunta operacional con datos parciales. low: duda menor sin urgencia.",
                 },
-                ["what_was_missing"] = new { type = "string", description = "Que data o validacion te falto para responder vos solo." },
+                ["what_was_missing"] = new { type = "string", description = "Que data o validacion te falto para responder vos solo. Util para que compliance entienda donde meter el patch." },
             },
             required = new[] { "summary", "category", "urgency" },
         });
