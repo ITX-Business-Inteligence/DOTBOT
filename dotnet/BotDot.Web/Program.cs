@@ -210,6 +210,11 @@ try
     // ──── API endpoints ────
     app.MapAuthEndpoints();
     app.MapAuditEndpoints();
+    if (app.Environment.IsDevelopment())
+    {
+        // Endpoints debug — SOLO en dev. Usados por scripts/verify-cross-stack-audit.js
+        app.MapAuditDebugEndpoints();
+    }
     app.MapChatEndpoints();
     app.MapDashboardEndpoints();
     app.MapAdminUsersEndpoints();
