@@ -98,10 +98,11 @@ function renderDrivers(list) {
     const cdlTone = expirationTone(d.cdl_days);
     const medTone = expirationTone(d.medical_days);
     const sourceBadge = sourceBadgeHtml(d.data_source);
+    const matchBadge = matchConfidenceBadge(d.match_confidence);
     return `
       <tr class="${d.active ? '' : 'opacity-50'}">
         <td>
-          <div class="font-medium text-slate-100">${escapeHtml(d.full_name || '—')}</div>
+          <div class="font-medium text-slate-100">${escapeHtml(d.full_name || '—')} ${matchBadge}</div>
           ${d.samsara_id ? `<div class="text-[10px] text-slate-500">samsara: ${escapeHtml(d.samsara_id)}</div>` : ''}
         </td>
         <td class="font-mono text-xs">${escapeHtml(d.cdl_number || '—')}</td>
@@ -158,6 +159,14 @@ function sourceBadgeHtml(src) {
   };
   const t = map[src] || { label: src || '—', cls: 'bg-slate-800 text-slate-300 border-slate-700' };
   return `<span class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${t.cls}">${t.label}</span>`;
+}
+
+// Badge de confianza del match Excel↔Samsara. Solo aparece cuando confidence
+// es 'low' (fuzzy match — compliance debe revisar). 'high' (CDL exacto) y
+// 'manual' (admin confirmo) no muestran nada porque ya son confiables.
+function matchConfidenceBadge(conf) {
+  if (conf !== 'low') return '';
+  return `<span class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border bg-amber-950/60 text-amber-200 border-amber-700/60 ml-1" title="Match Excel↔Samsara por nombre fuzzy. Editar para confirmar.">⚠ revisar</span>`;
 }
 
 // ─── Discrepancias ──────────────────────────────────────────────

@@ -337,7 +337,7 @@ router.get('/drivers', requireAdminOrCompliance, async (req, res, next) => {
     const rows = await db.query(
       `SELECT id, samsara_id, full_name, cdl_number, cdl_state, cdl_expiration,
               medical_card_expiration, endorsements, phone, hire_date,
-              company, location, division, active, data_source, last_synced_at,
+              company, location, division, active, data_source, match_confidence, last_synced_at,
               DATEDIFF(cdl_expiration, CURDATE()) AS cdl_days,
               DATEDIFF(medical_card_expiration, CURDATE()) AS medical_days
        FROM drivers ${where}
@@ -400,6 +400,10 @@ router.patch('/drivers/:id', requireAdminOrCompliance, async (req, res, next) =>
       const newSrc = target.data_source === 'samsara' ? 'samsara+excel' : 'manual';
       updates.push('data_source = ?');
       params.push(newSrc);
+      // Admin/compliance edito a mano → confirma la vinculacion. Bumpear
+      // confidence a 'manual' para que el badge de warning desaparezca.
+      updates.push('match_confidence = ?');
+      params.push('manual');
     }
     params.push(id);
 

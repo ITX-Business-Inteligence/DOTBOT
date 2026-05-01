@@ -67,7 +67,7 @@ public static class AdminDriversEndpoints
         var rows = await db.QueryAsync<dynamic>(
             $@"SELECT id, samsara_id, full_name, cdl_number, cdl_state, cdl_expiration,
                       medical_card_expiration, endorsements, phone, hire_date,
-                      company, location, division, active, data_source, last_synced_at,
+                      company, location, division, active, data_source, match_confidence, last_synced_at,
                       DATEDIFF(cdl_expiration, CURDATE()) AS cdl_days,
                       DATEDIFF(medical_card_expiration, CURDATE()) AS medical_days
                FROM drivers {where}
@@ -134,6 +134,10 @@ public static class AdminDriversEndpoints
             var newSrc = targetSrc == "samsara" ? "samsara+excel" : "manual";
             sets.Add("data_source = @DataSource");
             args["DataSource"] = newSrc;
+            // Admin/compliance edito a mano → confirma vinculacion. Confidence='manual'
+            // para que el badge de warning desaparezca.
+            sets.Add("match_confidence = @Confidence");
+            args["Confidence"] = "manual";
         }
 
         args["Id"] = id;

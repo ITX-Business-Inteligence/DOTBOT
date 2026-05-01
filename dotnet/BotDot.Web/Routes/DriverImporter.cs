@@ -89,6 +89,9 @@ public class DriverImporter
                     ExistingName = m.Match.FullName,
                     ExcelName = excel.FullName,
                     By = m.By,
+                    // Confianza: CDL exacto = high, fuzzy name = low.
+                    // Compliance debe revisar 'low' antes de definitivo.
+                    Confidence = m.By == "cdl_number" ? "high" : "low",
                     Active = active,
                     Excel = excel,
                 });
@@ -141,6 +144,7 @@ public class DriverImporter
                         notes = COALESCE(@Notes, notes),
                         active = @Active,
                         data_source = @DataSource,
+                        match_confidence = @Confidence,
                         last_synced_at = CURRENT_TIMESTAMP
                       WHERE id = @Id",
                     new
@@ -158,6 +162,7 @@ public class DriverImporter
                         Notes = m.Excel.Notes,
                         Active = m.Active ? 1 : 0,
                         DataSource = newSrc,
+                        Confidence = m.Confidence,
                         Id = m.DriverId,
                     }, tx);
             }
@@ -377,7 +382,16 @@ public class DriverImporter
     {
         if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
         if (a == b) return true;
-        var threshold = Math.Max(2, (int)(Math.Min(a.Length, b.Length) * 0.1));
+
+        // Apellido (ultima palabra) DEBE matchear exacto. Defensa adicional
+        // contra falsos positivos como "Robert L Sanchez" ↔ "Roberto Sanchez".
+        var partsA = a.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var partsB = b.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (partsA.Length == 0 || partsB.Length == 0) return false;
+        if (partsA[^1] != partsB[^1]) return false;
+
+        // Threshold 5% (era 10%, demasiado laxo para nombres cortos).
+        var threshold = Math.Max(1, (int)(Math.Min(a.Length, b.Length) * 0.05));
         return Levenshtein(a, b) <= threshold;
     }
 
@@ -450,6 +464,7 @@ public class DriverImporter
         public string? ExistingName { get; set; }
         public string? ExcelName { get; set; }
         public string By { get; set; } = "";
+        public string Confidence { get; set; } = "low";
         public bool Active { get; set; }
         public ExcelRow Excel { get; set; } = null!;
     }

@@ -110,11 +110,22 @@ function levenshtein(a, b) {
   return prev[b.length];
 }
 
-// Threshold de match fuzzy: distancia <= max(2, 10% del largo del nombre)
+// Threshold de match fuzzy. Endurecido tras detectar falso positivo:
+// "Robert L Sanchez" ↔ "Roberto Sanchez" matcheaban con threshold 2 al 10%.
+// Cambios:
+//   - Threshold 5% en vez de 10% (mas estricto)
+//   - Apellido (ultima palabra) DEBE matchear exacto — sino los nombres
+//     comparten solo el primer nombre y son personas distintas
 function namesMatch(normA, normB) {
   if (!normA || !normB) return false;
   if (normA === normB) return true;
-  const threshold = Math.max(2, Math.floor(Math.min(normA.length, normB.length) * 0.1));
+
+  // Apellido = ultima palabra. Tiene que ser identico para considerar match.
+  const lastA = normA.split(' ').pop();
+  const lastB = normB.split(' ').pop();
+  if (lastA !== lastB) return false;
+
+  const threshold = Math.max(1, Math.floor(Math.min(normA.length, normB.length) * 0.05));
   return levenshtein(normA, normB) <= threshold;
 }
 
@@ -284,6 +295,9 @@ async function runImport(filepath, { commit = false, importedByUserId = null } =
         existing_name: m.match.full_name,
         excel_name: excel.full_name,
         by: m.by,
+        // Confianza del match: CDL exacto = high, fuzzy name = low.
+        // Compliance debe revisar los 'low' antes de tratarlos como definitivos.
+        confidence: m.by === 'cdl_number' ? 'high' : 'low',
         active: excel._bucket === 'active' && /active/i.test(excel.status || 'active') ? 1 : 0,
         fields: {
           cdl_number: excel.cdl_number,
@@ -338,6 +352,7 @@ async function runImport(filepath, { commit = false, importedByUserId = null } =
            notes = COALESCE(?, notes),
            active = ?,
            data_source = ?,
+           match_confidence = ?,
            last_synced_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [
@@ -345,7 +360,7 @@ async function runImport(filepath, { commit = false, importedByUserId = null } =
           m.fields.medical_card_expiration, m.fields.endorsements,
           m.fields.phone, m.fields.hire_date, m.fields.company, m.fields.location,
           m.fields.division, m.fields.notes,
-          m.active, newSource, m.driver_id,
+          m.active, newSource, m.confidence, m.driver_id,
         ]
       );
     }
