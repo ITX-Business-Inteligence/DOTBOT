@@ -219,6 +219,73 @@ describe('SYSTEM_PROMPT_BASE — contexto del carrier', () => {
   });
 });
 
+describe('SYSTEM_PROMPT_BASE — tono de asesor (no directivo)', () => {
+  test('lenguaje de ASESOR explicito en seccion TONO', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /LENGUAJE DE ASESOR, NO DE DIRECTIVA/);
+  });
+
+  test('lista verbos permitidos del asesor', () => {
+    for (const verbo of [
+      /te recomiendo/,
+      /mi sugerencia es/,
+      /te aconsejo/,
+      /opino que/,
+    ]) {
+      assert.match(SYSTEM_PROMPT_BASE, verbo);
+    }
+  });
+
+  test('prohibe verbos directivos como afirmacion absoluta', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /NUNCA usas como afirmacion absoluta/);
+    assert.match(SYSTEM_PROMPT_BASE, /no puedes.*tienes que.*debes/s);
+  });
+
+  test('aclara que solo cita literal del CFR puede usar lenguaje imperativo', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /citando texto LITERAL del CFR/);
+  });
+
+  test('regla BOTTOM LINE UP FRONT presente', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /BOTTOM LINE UP FRONT/);
+  });
+
+  test('CONVERSIONES UTILES — air miles a statute miles', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /CONVERSIONES UTILES/);
+    assert.match(SYSTEM_PROMPT_BASE, /150 air-mi.*172 statute/);
+  });
+
+  test('lista anti-patrones de tono prohibidos', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /ANTI-PATRONES DE TONO/);
+    for (const antipat of [
+      /ortogonales/,
+      /se desprende del texto/,
+      /es importante notar/,
+    ]) {
+      assert.match(SYSTEM_PROMPT_BASE, antipat);
+    }
+  });
+
+  test('tono base: compliance officer senior, no memo legal', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /compliance officer senior/);
+    assert.match(SYSTEM_PROMPT_BASE, /NO como un memo legal/);
+  });
+});
+
+describe('SYSTEM_PROMPT_BASE — formato operacional usa RECOMENDACION (no DECISION)', () => {
+  test('header del formato dice RECOMENDACION, no DECISION', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /RECOMENDACION: SUGIERO PROCEDER/);
+  });
+
+  test('justifica el cambio: BOTDOT recomienda, no decide', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /BOTDOT recomienda — no decide/);
+  });
+
+  test('formato operacional NO usa el header viejo "DECISION:"', () => {
+    // El string "DECISION queda a tu lado" SI puede aparecer (es la frase de cierre).
+    // Lo que NO debe aparecer es "DECISION: PROCEED" como header del formato.
+    assert.doesNotMatch(SYSTEM_PROMPT_BASE, /DECISION:\s*PROCEED/);
+  });
+});
+
 describe('SYSTEM_PROMPT_BASE — formato consulta regulatoria estructurada', () => {
   test('contiene los 4 headers del formato estructurado', () => {
     for (const header of [
@@ -238,8 +305,8 @@ describe('SYSTEM_PROMPT_BASE — formato consulta regulatoria estructurada', () 
     );
   });
 
-  test('aclara que formato operacional sigue siendo DECISION/RAZON/ANALISIS', () => {
-    assert.match(SYSTEM_PROMPT_BASE, /Si la consulta es operacional.*usa el formato DECISION\/RAZON\/ANALISIS/);
+  test('aclara que formato operacional usa RECOMENDACION/POR QUE/ANALISIS', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /Si la consulta es operacional.*usa el formato RECOMENDACION\/POR QUE\/ANALISIS/);
   });
 });
 
