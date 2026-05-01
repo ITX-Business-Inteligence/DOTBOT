@@ -45,9 +45,12 @@ try
 
     // Auth services
     builder.Services.AddSingleton<IJwtService, JwtService>();
-    // Audit: Fase 2 usa stub. Fase 3 lo reemplaza con la implementacion real
-    // del hash chain.
-    builder.Services.AddSingleton<IAuditService, StubAuditService>();
+
+    // Audit chain (Fase 3) — port byte-exact del src/db/audit-chain.js del Node.
+    // Si esto se cambia, hay que correr smoke /api/audit/verify contra la cadena
+    // existente para confirmar intact:true.
+    builder.Services.AddSingleton<IAuditService, AuditService>();
+    builder.Services.AddSingleton<AuditVerifier>();
 
     // Rate limiting (login + change-password + chat-send)
     builder.Services.AddAuthRateLimits();
@@ -151,6 +154,7 @@ try
 
     // ──── API endpoints ────
     app.MapAuthEndpoints();
+    app.MapAuditEndpoints();
 
     // Static files (wwwroot/) — equivalente a express.static('public').
     app.UseDefaultFiles();
