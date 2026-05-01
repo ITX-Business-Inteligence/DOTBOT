@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta name="theme-color" content="#020617">
+  <title>BOTDOT</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/img/apple-touch-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BOTDOT">
+  <script src="/js/pwa.js" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-slate-100 shadow-lg shadow-black/40 flex-shrink-0 border-b border-slate-800">
+    <div class="flex items-center justify-between px-4 py-3 sm:px-6">
+      <div class="flex items-center gap-3">
+        <button id="menuBtn" class="lg:hidden p-2 -m-2 rounded hover:bg-slate-800" aria-label="Menu">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <img src="/img/dotbot-header.png" alt="BOTDOT" class="w-8 h-8 rounded-lg">
+          <h1 class="text-lg font-bold">BOTDOT</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a id="notificationsLink" href="/notifications.html" class="hidden relative text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg" title="Notificaciones de expiraciones">
+          <span class="hidden sm:inline">Alertas</span>
+          <span class="sm:hidden">📅</span>
+          <span id="notificationsBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+        </a>
+        <a id="escalationsLink" href="/escalations.html" class="hidden relative text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg" title="Escalaciones a compliance">
+          <span class="hidden sm:inline">Escalaciones</span>
+          <span class="sm:hidden">🔔</span>
+          <span id="escalationsBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+        </a>
+        <a id="driversLink" href="/drivers.html" class="hidden text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg" title="Gestion de drivers">
+          <span class="hidden sm:inline">Drivers</span>
+          <span class="sm:hidden">🚛</span>
+        </a>
+        <a id="settingsLink" href="/settings.html" class="text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg" title="Configuración">
+          <span class="hidden sm:inline">Settings</span>
+          <span class="sm:hidden">⚙️</span>
+        </a>
+        <a id="analyticsLink" href="/analytics.html" class="hidden text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg" title="Analytics de uso">
+          <span class="hidden sm:inline">Analytics</span>
+          <span class="sm:hidden">📊</span>
+        </a>
+        <div class="text-right text-sm hidden sm:block">
+          <div id="userName" class="font-semibold leading-tight"></div>
+          <div id="userRole" class="text-xs text-slate-400 leading-tight"></div>
+        </div>
+        <button id="logoutBtn" class="text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar / Dashboard -->
+    <aside id="sidebar" class="
+      fixed inset-y-0 left-0 top-14 z-40 w-80 bg-slate-900 border-r border-slate-800 overflow-y-auto
+      transform -translate-x-full lg:translate-x-0 lg:static lg:top-0 transition-transform duration-200">
+
+      <div class="p-4 space-y-4">
+        <!-- Drivers en riesgo (CDL / medical card cerca de vencer) -->
+        <section id="atRiskSection">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Drivers en riesgo</h2>
+            <span id="atRiskCount" class="text-xs text-slate-500"></span>
+          </div>
+          <div id="atRiskList" class="space-y-1.5">
+            <div class="text-sm text-slate-500">Cargando...</div>
+          </div>
+          <button id="atRiskMoreBtn" class="hidden text-xs text-blue-400 hover:text-blue-300 mt-1.5">
+            Ver todos
+          </button>
+        </section>
+
+        <!-- Atajos -->
+        <section>
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Atajos</h2>
+          <div class="space-y-1">
+            <button class="quick-prompt" data-prompt="Lista los 5 drivers que mas cerca estan de llegar a su limite HOS hoy.">
+              Drivers cerca de limite HOS
+            </button>
+            <button class="quick-prompt" data-prompt="Dame el estado actual de los 7 BASICs con el snapshot mas reciente.">
+              Estado actual de BASICs
+            </button>
+            <button class="quick-prompt" data-prompt="Top 10 violaciones por puntos en Vehicle Maintenance.">
+              Top violaciones Vehicle Maint
+            </button>
+            <button class="quick-prompt" data-prompt="Lista de crashes que NO han sido disputados via DataQs y son candidatos a Not Preventable.">
+              Candidatos DataQs
+            </button>
+            <button class="quick-prompt" data-prompt="Como funciona la regla de 11 horas de manejo? Cita 49 CFR.">
+              Reglas 49 CFR 395.3
+            </button>
+          </div>
+        </section>
+
+        <!-- Audit log link (compliance/manager) -->
+        <section id="auditSection" class="hidden">
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Auditoria</h2>
+          <button id="loadAuditBtn" class="quick-prompt">Ver ultimas 50 decisiones</button>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- Backdrop mobile -->
+    <div id="backdrop" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden"></div>
+
+    <!-- Chat main -->
+    <main class="flex-1 flex flex-col bg-slate-950">
+
+      <div id="chatLog" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div class="max-w-3xl mx-auto">
+          <div class="bg-blue-950/50 border-l-4 border-blue-600 p-4 rounded-r-lg">
+            <h2 class="font-semibold text-blue-200 mb-1">Bienvenido a BOTDOT</h2>
+            <p class="text-sm text-blue-100/90">
+              Soy tu asistente de compliance DOT/FMCSA. Puedes preguntarme sobre asignaciones,
+              HOS de drivers, BASICs, violaciones, regulaciones CFR, o pedirme que te ayude a
+              decidir antes de un dispatch.
+            </p>
+            <p class="text-xs text-blue-300/80 mt-2 italic">
+              Respondo solo con fundamento regulatorio citado. La decisión final es tuya.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <div id="composerWrap" class="flex-shrink-0 border-t border-slate-800 bg-slate-900 p-3 sm:p-4">
+        <div class="max-w-3xl mx-auto">
+          <!-- Previews de adjuntos (oculto si vacio) -->
+          <div id="attachmentPreviews" class="hidden flex flex-wrap gap-2 mb-2"></div>
+
+          <form id="chatForm" class="flex gap-2 items-end">
+            <!-- Boton adjuntar -->
+            <button
+              type="button" id="attachBtn"
+              class="flex-shrink-0 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition"
+              title="Adjuntar imagen (max 5, hasta 5MB c/u)">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+              </svg>
+            </button>
+            <input type="file" id="fileInput" class="hidden" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+
+            <textarea
+              id="messageInput" rows="1" placeholder="Escribe tu pregunta o pega un screenshot (Ctrl+V)..."
+              class="flex-1 resize-none px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base max-h-32"
+              autocomplete="off"></textarea>
+
+            <button
+              id="sendBtn" type="submit"
+              class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition disabled:opacity-50 flex items-center gap-1">
+              <span class="hidden sm:inline">Enviar</span>
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+              </svg>
+            </button>
+          </form>
+          <p class="text-center text-xs text-slate-500 mt-2">
+            BOTDOT puede equivocarse. Verifica decisiones críticas con tu compliance officer. No constituye asesoría legal.
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/chat.js"></script>
+</body>
+</html>

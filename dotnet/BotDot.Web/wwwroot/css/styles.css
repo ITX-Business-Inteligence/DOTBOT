@@ -1,0 +1,351 @@
+/* Estilos custom — DARK MODE por defecto.
+   Complementan Tailwind. Las clases Tailwind ya estan reescritas en cada
+   HTML para tema oscuro; este archivo cubre lo que requiere CSS custom
+   (componentes con colores especificos como msg, kpi, audit, heatmap). */
+
+html, body {
+  -webkit-font-smoothing: antialiased;
+  background: #020617; /* slate-950 */
+  color: #f1f5f9;      /* slate-100 */
+}
+
+.kpi-card {
+  border-radius: 0.5rem;
+  padding: 0.625rem;
+}
+
+.quick-prompt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: #cbd5e1;        /* slate-300 */
+  background: #1e293b;   /* slate-800 */
+  border: 1px solid #334155; /* slate-700 */
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.quick-prompt:hover {
+  background: #334155;       /* slate-700 */
+  border-color: #475569;     /* slate-600 */
+  color: #ffffff;
+}
+
+.basic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: #1e293b;       /* slate-800 */
+  border: 1px solid #334155; /* slate-700 */
+}
+.basic-row.alert {
+  background: rgba(127, 29, 29, 0.35);  /* red-900/35 */
+  border-color: rgba(153, 27, 27, 0.6); /* red-800/60 */
+}
+.basic-row .basic-name {
+  font-weight: 500;
+  color: #e2e8f0;            /* slate-200 */
+  flex: 1;
+  min-width: 0;
+}
+.basic-row .basic-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+}
+.basic-row.alert .basic-score { color: #fca5a5; } /* red-300 */
+.basic-row .basic-threshold {
+  font-size: 0.75rem;
+  color: #94a3b8;            /* slate-400 */
+  margin-left: 0.5rem;
+}
+
+/* Mensajes del chat */
+.msg {
+  max-width: 100%;
+  word-wrap: break-word;
+}
+.msg-user {
+  background: #2563eb;       /* blue-600 */
+  color: white;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  padding: 0.75rem 1rem;
+  margin-left: auto;
+  max-width: 85%;
+}
+.msg-assistant {
+  background: #1e293b;       /* slate-800 */
+  color: #f1f5f9;            /* slate-100 */
+  border: 1px solid #334155; /* slate-700 */
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  padding: 0.875rem 1rem;
+  max-width: 100%;
+  white-space: pre-wrap;
+}
+.msg-assistant strong { color: #93c5fd; } /* blue-300 */
+.msg-assistant code {
+  background: #0f172a;       /* slate-900 */
+  color: #e2e8f0;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  border: 1px solid #334155;
+}
+.msg-tool {
+  font-size: 0.75rem;
+  color: #94a3b8;            /* slate-400 */
+  font-style: italic;
+  padding: 0.25rem 0.75rem;
+}
+
+.typing-dots span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #64748b;       /* slate-500 */
+  margin: 0 1px;
+  animation: typing 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Auto-resize textarea up to max-h */
+#messageInput { min-height: 48px; line-height: 1.5; }
+
+/* Scrollbar fina dark */
+.overflow-y-auto::-webkit-scrollbar { width: 6px; }
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #334155;       /* slate-700 */
+  border-radius: 3px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #475569;       /* slate-600 */
+}
+.overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+
+/* Mobile: garantizar que sidebar abierto cubra bien */
+@media (max-width: 1023px) {
+  #sidebar.open { transform: translateX(0); }
+}
+
+/* Tabla de audit */
+.audit-table { width: 100%; font-size: 0.875rem; color: #e2e8f0; }
+.audit-table th, .audit-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #334155; /* slate-700 */
+}
+.audit-table th {
+  background: #0f172a;       /* slate-900 */
+  font-weight: 600;
+  color: #94a3b8;            /* slate-400 */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+.audit-decision {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.audit-decision.decline       { background: rgba(127,29,29,0.5);  color: #fca5a5; } /* red-900/50 + red-300 */
+.audit-decision.proceed       { background: rgba(20,83,45,0.5);   color: #86efac; } /* green-900/50 + green-300 */
+.audit-decision.conditional   { background: rgba(120,53,15,0.5);  color: #fcd34d; } /* amber-900/50 + amber-300 */
+.audit-decision.override      { background: rgba(76,29,149,0.5);  color: #c4b5fd; } /* violet-900/50 + violet-300 */
+.audit-decision.informational { background: rgba(12,74,110,0.5);  color: #7dd3fc; } /* sky-900/50 + sky-300 */
+
+/* Analytics — KPI cards */
+.kpi-big {
+  background: #0f172a;       /* slate-900 */
+  border: 1px solid #1e293b; /* slate-800 */
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+.kpi-big.kpi-danger  { background: rgba(127,29,29,0.25); border-color: rgba(153,27,27,0.5); }
+.kpi-big.kpi-warning { background: rgba(120,53,15,0.25); border-color: rgba(180,83,9,0.5);  }
+.kpi-big.kpi-success { background: rgba(6,78,59,0.25);   border-color: rgba(5,150,105,0.5); }
+
+.kpi-big .kpi-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;            /* slate-400 */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.kpi-big.kpi-danger  .kpi-label { color: #fca5a5; }
+.kpi-big.kpi-warning .kpi-label { color: #fcd34d; }
+.kpi-big.kpi-success .kpi-label { color: #6ee7b7; }
+
+.kpi-big .kpi-value {
+  font-size: 1.75rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #f1f5f9;            /* slate-100 */
+  font-variant-numeric: tabular-nums;
+}
+.kpi-big.kpi-danger  .kpi-value { color: #fecaca; }
+.kpi-big.kpi-warning .kpi-value { color: #fde68a; }
+.kpi-big.kpi-success .kpi-value { color: #a7f3d0; }
+
+/* Cards genericas */
+.card {
+  background: #0f172a;       /* slate-900 */
+  border: 1px solid #1e293b; /* slate-800 */
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: #e2e8f0;
+}
+.card-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f1f5f9;            /* slate-100 */
+  margin-bottom: 0.75rem;
+}
+
+.word-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  background: #1e293b;       /* slate-800 */
+  border: 1px solid #334155; /* slate-700 */
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: #93c5fd;            /* blue-300 */
+}
+.word-chip .count {
+  font-size: 0.75rem;
+  color: #64748b;            /* slate-500 */
+  font-weight: 600;
+}
+
+/* Settings tabs (sidebar de /settings.html) */
+.settings-tab {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.settings-tab:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+.settings-tab.active {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+
+/* Tabs (paginas con multiples vistas) */
+.tab-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;            /* slate-400 */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.tab-btn:hover {
+  color: #e2e8f0;            /* slate-200 */
+}
+.tab-btn.active {
+  color: #f1f5f9;            /* slate-100 */
+  border-bottom-color: #3b82f6;  /* blue-500 */
+}
+
+/* Filtros (chips) */
+.disc-filter {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.disc-filter:hover {
+  background: #334155;
+}
+.disc-filter.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Filtros de escalaciones / notifications (status / urgency / kind) */
+.status-filter, .urgency-filter, .kind-filter {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.status-filter:hover, .urgency-filter:hover, .kind-filter:hover {
+  background: #334155;
+}
+.status-filter.active, .urgency-filter.active, .kind-filter.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Action buttons en modal de escalacion */
+.action-btn {
+  font-size: 0.75rem;
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action-btn:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+/* Heatmap */
+.hm-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(24, minmax(20px, 1fr));
+  gap: 2px;
+  font-size: 0.7rem;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: #1e293b;       /* slate-800 (cell base, gets overridden by inline gradient) */
+}
+.hm-label-row {
+  color: #94a3b8;            /* slate-400 */
+  text-align: right;
+  padding-right: 0.5rem;
+  align-self: center;
+}
+.hm-label-col {
+  color: #64748b;            /* slate-500 */
+  text-align: center;
+  font-size: 0.65rem;
+}

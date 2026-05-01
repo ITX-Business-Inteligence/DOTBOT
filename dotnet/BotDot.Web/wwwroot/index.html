@@ -1,24 +1,65 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <title>BOTDOT — .NET (en construccion)</title>
-  <style>
-    body { font-family: system-ui, sans-serif; background: #020617; color: #f1f5f9;
-           display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .card { max-width: 440px; padding: 24px; background: #0f172a;
-            border: 1px solid #1e293b; border-radius: 12px; }
-    h1 { margin: 0 0 8px; color: #38bdf8; }
-    p { color: #94a3b8; line-height: 1.5; font-size: 14px; }
-    code { background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #fbbf24; font-size: 13px; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta name="theme-color" content="#020617">
+  <title>BOTDOT - Acceso</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/img/apple-touch-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BOTDOT">
+  <script src="/js/pwa.js" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body>
-  <div class="card">
-    <h1>BOTDOT v0.2 — .NET</h1>
-    <p>Migracion a ASP.NET Core 8 + Blazor Server <strong>en progreso</strong>. Las paginas de UI van a venir en la Fase 6 del plan.</p>
-    <p>Por ahora el server expone <code>GET /api/health</code> para validar que el stack arranca.</p>
-    <p>El proyecto Node original sigue funcionando en el directorio raiz; este proyecto vive en <code>/dotnet/</code>.</p>
-  </div>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl shadow-black/40 p-6 sm:p-8 border border-slate-800">
+      <div class="text-center mb-6">
+        <img src="/img/dotbot-header.png" alt="BOTDOT" class="w-16 h-16 rounded-xl mx-auto mb-3 shadow-lg shadow-blue-900/40">
+        <h1 class="text-2xl font-bold text-slate-100">BOTDOT</h1>
+        <p class="text-sm text-slate-400 mt-1">Asistente de Compliance DOT/FMCSA</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="email" class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+          <input
+            type="email" id="email" name="email" required
+            autocomplete="email"
+            class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+            placeholder="tu@intelogix.mx">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-slate-300 mb-1">Contraseña</label>
+          <input
+            type="password" id="password" name="password" required
+            autocomplete="current-password"
+            class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base">
+        </div>
+        <div id="errorBox" class="hidden bg-red-950/60 border border-red-800 text-red-300 text-sm rounded-lg p-3"></div>
+        <button
+          type="submit" id="submitBtn"
+          class="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold transition disabled:opacity-50">
+          Entrar
+        </button>
+      </form>
+
+      <p class="text-xs text-slate-500 text-center mt-6">
+        Acceso restringido al personal autorizado de Intelogix.<br>
+        USDOT 2195271 - v0.1.0
+      </p>
+    </div>
+  </main>
+  <footer class="text-center text-xs text-slate-500 p-4">
+    Esta herramienta no constituye asesoría legal.
+  </footer>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/login.js"></script>
 </body>
 </html>
