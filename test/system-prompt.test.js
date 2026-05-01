@@ -219,6 +219,30 @@ describe('SYSTEM_PROMPT_BASE — contexto del carrier', () => {
   });
 });
 
+describe('SYSTEM_PROMPT_BASE — formato consulta regulatoria estructurada', () => {
+  test('contiene los 4 headers del formato estructurado', () => {
+    for (const header of [
+      /REFERENCIA REGULATORIA/,
+      /TEXTO DEL REGLAMENTO/,
+      /INTERPRETACION PARA TRANSPORTE PESADO/,
+      /CONFORMIDAD REQUERIDA/,
+    ]) {
+      assert.match(SYSTEM_PROMPT_BASE, header);
+    }
+  });
+
+  test('refuerza regla 3 — texto del CFR sale de tool, no de memoria', () => {
+    assert.match(
+      SYSTEM_PROMPT_BASE,
+      /sale \*\*literalmente\*\* de `get_cfr_section` o `search_cfr`/
+    );
+  });
+
+  test('aclara que formato operacional sigue siendo DECISION/RAZON/ANALISIS', () => {
+    assert.match(SYSTEM_PROMPT_BASE, /Si la consulta es operacional.*usa el formato DECISION\/RAZON\/ANALISIS/);
+  });
+});
+
 describe('buildSystemPrompt(user) — contexto de usuario', () => {
   test('incluye nombre, rol y email del usuario', () => {
     const prompt = buildSystemPrompt({ name: 'Juan', role: 'dispatcher', email: 'juan@test.com' });
