@@ -13,7 +13,7 @@
 // Versioning: bumpea CACHE_VERSION cuando cambies assets. La activacion
 // purga caches viejas.
 
-const CACHE_VERSION = 'botdot-v2';
+const CACHE_VERSION = 'botdot-v3';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
